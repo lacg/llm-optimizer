@@ -1,0 +1,50 @@
+# -------------------------------------------------
+# Project‑level configuration (only allowed keys here)
+# -------------------------------------------------
+project:
+  type: website
+  output-dir: docs               # folder that GitHub Pages will serve
+  title: "llm-optimizer"        # optional generic title
+
+# -------------------------------------------------
+# Global metadata – these become defaults for every .qmd
+# -------------------------------------------------
+author: "Luiz Alberto Crispiniano Garcia"
+date: "2025-11-11"
+license: "CC BY 4.0 NC"
+
+# -------------------------------------------------
+# Site‑wide options (branding, navigation, footer, etc.)
+# -------------------------------------------------
+website:
+  title: "LLM Optimizer"
+  description: "A website for the LLM Optimizer project"
+  site-url: "https://lacg.github.io/llm-optimizer"
+  favicon: "favicon.ico"
+
+  # ---- Navigation bar -------------------------------------------------
+  navbar:
+    # Logo belongs here (not at the top level of `website`)
+    logo: "logo.png"
+    logo-alt: "LLM Optimizer logo"
+
+    left:
+      - text: Home
+        href: index.qmd
+      - text: About
+        href: about.qmd
+
+# -------------------------------------------------
+# Collections (e.g., blog posts)
+# -------------------------------------------------
+collections:
+  - name: "posts"
+    input: "posts"
+    output: "posts"
+
+# -------------------------------------------------
+# Output format options (theme, etc.)
+# -------------------------------------------------
+format:
+  html:
+    theme: "darkly"
