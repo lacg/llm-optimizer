@@ -31,10 +31,10 @@ website:
     left:
       - text: Home
         href: index.qmd
-      - text: About
-        href: about.qmd
       - text: "Blog"
         href: posts/
+      - text: About
+        href: about.qmd
 
 # -------------------------------------------------
 # Collections (e.g., blog posts)
