@@ -8,4 +8,4 @@ date: 2025-11-11
 
 Welcome! Below you’ll find all of the posts in reverse‑chronological order.
 
-
+[Week 0 - Preparation](20251111-week0.qmd)
