@@ -1,7 +1,7 @@
 project:
   type: website
   title: "llm-optimizer"
-  output-dir: "_site" # Output directory for the website
+  output-dir: "docs" # Output directory for the website
   base-url: "https://github.com/lacg/llm-optimizer" # Base URL for the website
   theme: "quarto::darkly" # Theme to use for the website
   favicon: "favicon.ico" # Favicon file
