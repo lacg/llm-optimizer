@@ -44,6 +44,7 @@ collections:
     title: "Blog"
     input: "posts"
     output: "posts"
+    sort: date
 
 # -------------------------------------------------
 # Output format options (theme, etc.)
