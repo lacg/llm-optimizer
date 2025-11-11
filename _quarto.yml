@@ -1,0 +1,33 @@
+project:
+  type: website
+  title: "llm-optimizer"
+  output-dir: "_site" # Output directory for the website
+  base-url: "https://github.com/lacg/llm-optimizer" # Base URL for the website
+  theme: "quarto::darkly" # Theme to use for the website
+  favicon: "favicon.ico" # Favicon file
+  logo: "logo.png" # Logo file
+  logo-alt: "LLM Optimizer logo" # Alt text for the logo
+  description: "A website for the LLM Optimizer project" # Description of the website
+  author: "Luiz Alberto Crispiniano Garcia" # Author of the website
+  date: "2025-11-11" # Date of the website
+  license: "CC BY 4.0 NC" # License for the website
+
+collections:
+  - name: "posts"
+    input: "posts"
+    output: "posts"
+    # Additional configuration options for the posts collection
+    # You can add more configuration options here
+
+format:
+  html:
+    theme: "darkly"
+
+website:
+  title: "LLM Optimizer"
+  navbar:
+    left:
+      - text: Home
+        href: index.qmd
+      - text: About
+        href: about.qmd

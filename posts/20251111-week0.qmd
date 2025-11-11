@@ -1,0 +1,25 @@
+---
+title: "Week 0 – Preparation"
+author: "Luiz Garcia"
+date: 2025-11-11
+abstract: |
+  Short description of what this project is about, goals, and the
+  workflow you plan to follow.
+doi: ""               # will be filled later after Zenodo release
+license: "CC-BY-4.0"
+format: html
+---
+
+# Introduction
+Write a few paragraphs about why the project matters.
+
+# Timeline (example)
+| Week | Milestone |
+|------|-----------|
+| 0    | Blog launch, research plan |
+| 1‑2  | Data collection set‑up |
+| 3‑4  | First analyses |
+
+# Resources
+- Data repository: *link later*
+- Code repo: *link later*
