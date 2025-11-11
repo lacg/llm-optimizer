@@ -25,20 +25,23 @@ website:
   # ---- Navigation bar -------------------------------------------------
   navbar:
     # Logo belongs here (not at the top level of `website`)
-    logo: "logo.png"
-    logo-alt: "LLM Optimizer logo"
+    # logo: "logo.png"
+    # logo-alt: "LLM Optimizer logo"
 
     left:
       - text: Home
         href: index.qmd
       - text: About
         href: about.qmd
+      - text: "Blog"
+        href: posts/
 
 # -------------------------------------------------
 # Collections (e.g., blog posts)
 # -------------------------------------------------
 collections:
   - name: "posts"
+    title: "Blog"
     input: "posts"
     output: "posts"
 
