@@ -51,5 +51,5 @@ If you use LLM Optimizer in a publication, please cite it as:
   title  = {LLM Optimizer},
   year   = {2025},
   url    = {https://github.com/lacg/llm-optimizer},
-  license = {CC BY 4.0 NC}
+  license = {CC BY-NC-SA 4.0}
 }

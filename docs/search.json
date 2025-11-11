@@ -18,7 +18,7 @@
     "href": "index.html",
     "title": "Home",
     "section": "",
-    "text": "Welcome to the LLM Optimizer website!\n\n\n\nReuseCC BY-NC 4.0"
+    "text": "Welcome to the LLM Optimizer website!\n\n\n\nReuseCC BY-NC-SA 4.0"
   },
   {
     "objectID": "posts/20251111-week0.html",
@@ -32,14 +32,14 @@
     "href": "posts/index.html",
     "title": "Blog",
     "section": "",
-    "text": "LLM Optimizer Blog\nWelcome! Below you’ll find all of the posts in reverse‑chronological order.\nWeek 0 - Preparation\n\n\n\n\nReuseCC BY-NC 4.0"
+    "text": "LLM Optimizer Blog\nWelcome! Below you’ll find all of the posts in reverse‑chronological order.\nWeek 0 - Preparation\n\n\n\n\nReuseCC BY-NC-SA 4.0"
   },
   {
     "objectID": "about.html",
     "href": "about.html",
     "title": "About",
     "section": "",
-    "text": "LLM Optimizer is a lightweight, open‑source toolkit that helps developers and researchers tune large language models (LLMs) for specific downstream tasks.\nIt provides:\n\n🛠️ Utilities for prompt engineering, hyper‑parameter sweeps, and model‑selection pipelines.\n\n📊 Visualization dashboards (built with Plotly/Dash) to inspect performance across runs.\n\n🤝 Extensible API – you can plug in your own evaluation metrics, data loaders, or model wrappers.\n\n\nTL;DR: “Run fewer experiments, get better results.”\n\n\n\n\nThe rapid proliferation of LLMs has made it easy to train or fine‑tune, but hard to know which fine‑tuning strategy actually works for a given problem.\nLLM Optimizer fills that gap by:\n\nStandardising the experimental workflow.\n\nAutomating the tedious parts (e.g., logging, checkpoint management).\n\nSharing reproducible pipelines so the community can build on each other’s work.\n\n\n\n\n\n\n\n\n\n\n\n\nStatus\nDescription\n\n\n\n\nVersion\n0.3.0 (alpha) – still under heavy development\n\n\nLicense\nCC BY‑4.0 NC (non‑commercial) – see LICENSE in the repo\n\n\nContributions\nWelcome! Fork the repo, open a PR, or discuss ideas in the Issues tab.\n\n\nDocumentation\nFull docs are in the docs/ folder and on the website (this page).\n\n\nContact\nlacg@me.com\n\n\n\n\n\n\n\nIf you use LLM Optimizer in a publication, please cite it as:\n```bibtex @software{llm_optimizer, author = {Crispiniano Garcia, Luiz Alberto}, title = {LLM Optimizer}, year = {2025}, url = {https://github.com/lacg/llm-optimizer}, license = {CC BY 4.0 NC} }"
+    "text": "LLM Optimizer is a lightweight, open‑source toolkit that helps developers and researchers tune large language models (LLMs) for specific downstream tasks.\nIt provides:\n\n🛠️ Utilities for prompt engineering, hyper‑parameter sweeps, and model‑selection pipelines.\n\n📊 Visualization dashboards (built with Plotly/Dash) to inspect performance across runs.\n\n🤝 Extensible API – you can plug in your own evaluation metrics, data loaders, or model wrappers.\n\n\nTL;DR: “Run fewer experiments, get better results.”\n\n\n\n\nThe rapid proliferation of LLMs has made it easy to train or fine‑tune, but hard to know which fine‑tuning strategy actually works for a given problem.\nLLM Optimizer fills that gap by:\n\nStandardising the experimental workflow.\n\nAutomating the tedious parts (e.g., logging, checkpoint management).\n\nSharing reproducible pipelines so the community can build on each other’s work.\n\n\n\n\n\n\n\n\n\n\n\n\nStatus\nDescription\n\n\n\n\nVersion\n0.3.0 (alpha) – still under heavy development\n\n\nLicense\nCC BY‑4.0 NC (non‑commercial) – see LICENSE in the repo\n\n\nContributions\nWelcome! Fork the repo, open a PR, or discuss ideas in the Issues tab.\n\n\nDocumentation\nFull docs are in the docs/ folder and on the website (this page).\n\n\nContact\nlacg@me.com\n\n\n\n\n\n\n\nIf you use LLM Optimizer in a publication, please cite it as:\n```bibtex @software{llm_optimizer, author = {Crispiniano Garcia, Luiz Alberto}, title = {LLM Optimizer}, year = {2025}, url = {https://github.com/lacg/llm-optimizer}, license = {CC BY-NC-SA 4.0} }"
   },
   {
     "objectID": "about.html#why-was-it-created",
@@ -60,6 +60,6 @@
     "href": "about.html#how-to-cite",
     "title": "About",
     "section": "",
-    "text": "If you use LLM Optimizer in a publication, please cite it as:\n```bibtex @software{llm_optimizer, author = {Crispiniano Garcia, Luiz Alberto}, title = {LLM Optimizer}, year = {2025}, url = {https://github.com/lacg/llm-optimizer}, license = {CC BY 4.0 NC} }"
+    "text": "If you use LLM Optimizer in a publication, please cite it as:\n```bibtex @software{llm_optimizer, author = {Crispiniano Garcia, Luiz Alberto}, title = {LLM Optimizer}, year = {2025}, url = {https://github.com/lacg/llm-optimizer}, license = {CC BY-NC-SA 4.0} }"
   }
 ]
