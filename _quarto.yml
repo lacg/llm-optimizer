@@ -12,6 +12,7 @@ project:
 author: "Luiz Alberto Crispiniano Garcia"
 date: "2025-11-11"
 license: "CC BY-NC-SA 4.0"
+citation_package: pandoc
 bibliography: references.bib
 
 # -------------------------------------------------
