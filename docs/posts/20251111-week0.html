@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.8.25">
+<meta name="generator" content="quarto-1.8.26">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -22,7 +22,27 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="../site_libs/quarto-nav/quarto-nav.js"></script>
@@ -40,7 +60,7 @@ ul.task-list li input[type="checkbox"] {
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-707d8167ce6003fca903bfe2be84ab7f.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-b758ccaa5987ceb1b75504551e579abf.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../site_libs/bootstrap/bootstrap-2ec1ecde4794cf0ca2676fdbadd3167b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
@@ -82,8 +102,6 @@ ul.task-list li input[type="checkbox"] {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a href="../index.html" class="navbar-brand navbar-brand-logo">
-    </a>
     <a class="navbar-brand" href="../index.html">
     <span class="navbar-title">LLM Optimizer</span>
     </a>
@@ -168,7 +186,8 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="introduction" class="level1">
 <h1>Introduction</h1>
-<p>Write a few paragraphs about why the project matters.</p>
+<p>The LLM Optimizer will start small. The main idea is to leverage my previous knowledge using Weightless Neural Networks (WNN <span class="citation" data-cites="wilkie1995wisard">(<a href="#ref-wilkie1995wisard" role="doc-biblioref">Wilkie and Storie 1995</a>)</span>), Simulated Annealing (SA <span class="citation" data-cites="kirkpatrick1983annealing">(<a href="#ref-kirkpatrick1983annealing" role="doc-biblioref">Kirkpatrick, Gelatt, and Vecchi 1983</a>)</span>), Tabu Search (TS <span class="citation" data-cites="glover1989tabu1">(<a href="#ref-glover1989tabu1" role="doc-biblioref">Glover 1989</a>)</span>) and Genetic Algorithm (GA <span class="citation" data-cites="holland1975adaptation">(<a href="#ref-holland1975adaptation" role="doc-biblioref">Holland 1975</a>)</span>) for optimization tasks and apply to a modern problem, Large Language Models (LLM <span class="citation" data-cites="vaswani2017attention">(<a href="#ref-vaswani2017attention" role="doc-biblioref">Vaswani et al. 2017</a>)</span>).</p>
+<p>That’s how a meta-heuristic prompt optimization came to be. Use NN/SA/TS/GA to discover high‑quality prompts for a target task. A tiny RAM‑net (a weightless neural network) is trained as a surrogate that quickly predicts how good a prompt will be, so the meta‑heuristic can explore millions of candidates without calling the LLM each time.</p>
 </section>
 <section id="timeline-example" class="level1">
 <h1>Timeline (example)</h1>
@@ -201,6 +220,26 @@ ul.task-list li input[type="checkbox"] {
 <li>Data repository: <em>link later</em></li>
 <li>Code repo: <em>link later</em></li>
 </ul>
+</section>
+<section id="references" class="level1">
+<h1>References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-glover1989tabu1" class="csl-entry" role="listitem">
+Glover, F. 1989. <span>“Tabu Search – Part i.”</span> <em>ORSA Journal on Computing</em> 1 (3): 190–206. <a href="https://doi.org/10.1287/ijoc.1.1.1">https://doi.org/10.1287/ijoc.1.1.1</a>.
+</div>
+<div id="ref-holland1975adaptation" class="csl-entry" role="listitem">
+Holland, John H. 1975. <em>Adaptation in Natural and Artificial Systems</em>. University of Michigan Press. <a href="https://doi.org/10.1007/978-3-642-64215-0">https://doi.org/10.1007/978-3-642-64215-0</a>.
+</div>
+<div id="ref-kirkpatrick1983annealing" class="csl-entry" role="listitem">
+Kirkpatrick, S., C. D. Gelatt, and M. P. Vecchi. 1983. <span>“Optimization by Simulated Annealing.”</span> <em>Science</em> 220 (4598): 671–80. <a href="https://doi.org/10.1126/science.220.4598.671">https://doi.org/10.1126/science.220.4598.671</a>.
+</div>
+<div id="ref-vaswani2017attention" class="csl-entry" role="listitem">
+Vaswani, Ashish, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Łukasz Kaiser, and Illia Polosukhin. 2017. <span>“Attention Is All You Need.”</span> In <em>Advances in Neural Information Processing Systems</em>, 30:5998–6008. <a href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a>.
+</div>
+<div id="ref-wilkie1995wisard" class="csl-entry" role="listitem">
+Wilkie, Christopher, and David Storie. 1995. <span>“The WiSARD: A Weightless Neural Network for Pattern Classification.”</span> In <em>1995 International Joint Conference on Neural Networks (IJCNN)</em>, 1:124–29. <a href="https://doi.org/10.1109/IJCNN.1995.560260">https://doi.org/10.1109/IJCNN.1995.560260</a>.
+</div>
+</div>
 
 
 </section>
