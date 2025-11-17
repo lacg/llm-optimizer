@@ -11,7 +11,7 @@ format: html
 ---
 
 # Introduction
-The LLM Optimizer will start small. The main idea is to leverage my previous knowledge using Weightless Neural Networks (WNN [@wilkie1995wisard]), Simulated Annealing (SA [@kirkpatrick1983annealing]), Tabu Search (TS [@glover1989tabu1]) and Genetic Algorithm (GA [@holland1975adaptation]) for optimization tasks and apply to a modern problem, Large Language Models (LLM [@vaswani2017attention]).
+The LLM Optimizer will start small. The main idea is to leverage my previous knowledge using Weightless Neural Networks (WNN [@ludermir1999weightless]), Simulated Annealing (SA [@kirkpatrick1983annealing]), Tabu Search (TS [@glover1989tabu1]) and Genetic Algorithm (GA [@holland1975adaptation]) for optimization tasks and apply to a modern problem, Large Language Models (LLM [@liu2022survey] and [@openai2023gpt4]).
 
 That's how a meta-heuristic prompt optimization came to be. Use NN/SA/TS/GA to discover high‑quality prompts for a target task. A tiny RAM‑net (a weightless neural network) is trained as a surrogate that quickly predicts how good a prompt will be, so the meta‑heuristic can explore millions of candidates without calling the LLM each time.
 

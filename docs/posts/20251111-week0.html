@@ -186,7 +186,7 @@ div.csl-indent {
 
 <section id="introduction" class="level1">
 <h1>Introduction</h1>
-<p>The LLM Optimizer will start small. The main idea is to leverage my previous knowledge using Weightless Neural Networks (WNN <span class="citation" data-cites="wilkie1995wisard">(<a href="#ref-wilkie1995wisard" role="doc-biblioref">Wilkie and Storie 1995</a>)</span>), Simulated Annealing (SA <span class="citation" data-cites="kirkpatrick1983annealing">(<a href="#ref-kirkpatrick1983annealing" role="doc-biblioref">Kirkpatrick, Gelatt, and Vecchi 1983</a>)</span>), Tabu Search (TS <span class="citation" data-cites="glover1989tabu1">(<a href="#ref-glover1989tabu1" role="doc-biblioref">Glover 1989</a>)</span>) and Genetic Algorithm (GA <span class="citation" data-cites="holland1975adaptation">(<a href="#ref-holland1975adaptation" role="doc-biblioref">Holland 1975</a>)</span>) for optimization tasks and apply to a modern problem, Large Language Models (LLM <span class="citation" data-cites="vaswani2017attention">(<a href="#ref-vaswani2017attention" role="doc-biblioref">Vaswani et al. 2017</a>)</span>).</p>
+<p>The LLM Optimizer will start small. The main idea is to leverage my previous knowledge using Weightless Neural Networks (WNN <span class="citation" data-cites="ludermir1999weightless">(<a href="#ref-ludermir1999weightless" role="doc-biblioref">Teresa Bernarda Ludermir and Souto 1999</a>)</span>), Simulated Annealing (SA <span class="citation" data-cites="kirkpatrick1983annealing">(<a href="#ref-kirkpatrick1983annealing" role="doc-biblioref">Kirkpatrick, Gelatt, and Vecchi 1983</a>)</span>), Tabu Search (TS <span class="citation" data-cites="glover1989tabu1">(<a href="#ref-glover1989tabu1" role="doc-biblioref">Glover 1989</a>)</span>) and Genetic Algorithm (GA <span class="citation" data-cites="holland1975adaptation">(<a href="#ref-holland1975adaptation" role="doc-biblioref">Holland 1975</a>)</span>) for optimization tasks and apply to a modern problem, Large Language Models (LLM <span class="citation" data-cites="liu2022survey">(<a href="#ref-liu2022survey" role="doc-biblioref">Liu et al. 2021</a>)</span> and <span class="citation" data-cites="openai2023gpt4">(<a href="#ref-openai2023gpt4" role="doc-biblioref">OpenAI 2023</a>)</span>).</p>
 <p>That’s how a meta-heuristic prompt optimization came to be. Use NN/SA/TS/GA to discover high‑quality prompts for a target task. A tiny RAM‑net (a weightless neural network) is trained as a surrogate that quickly predicts how good a prompt will be, so the meta‑heuristic can explore millions of candidates without calling the LLM each time.</p>
 </section>
 <section id="timeline-example" class="level1">
@@ -233,11 +233,14 @@ Holland, John H. 1975. <em>Adaptation in Natural and Artificial Systems</em>. Un
 <div id="ref-kirkpatrick1983annealing" class="csl-entry" role="listitem">
 Kirkpatrick, S., C. D. Gelatt, and M. P. Vecchi. 1983. <span>“Optimization by Simulated Annealing.”</span> <em>Science</em> 220 (4598): 671–80. <a href="https://doi.org/10.1126/science.220.4598.671">https://doi.org/10.1126/science.220.4598.671</a>.
 </div>
-<div id="ref-vaswani2017attention" class="csl-entry" role="listitem">
-Vaswani, Ashish, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Łukasz Kaiser, and Illia Polosukhin. 2017. <span>“Attention Is All You Need.”</span> In <em>Advances in Neural Information Processing Systems</em>, 30:5998–6008. <a href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a>.
+<div id="ref-liu2022survey" class="csl-entry" role="listitem">
+Liu, Y., M. Ott, N. Goyal, J. Du, M. Joshi, D. Chen, and V. &amp; Stoyanov. 2021. <span>“Pre‑train, Prompt, and Predict: A Survey on Large Language Models.”</span> <em>arXiv Preprint</em>. <a href="https://arxiv.org/abs/2107.13586">https://arxiv.org/abs/2107.13586</a>.
 </div>
-<div id="ref-wilkie1995wisard" class="csl-entry" role="listitem">
-Wilkie, Christopher, and David Storie. 1995. <span>“The WiSARD: A Weightless Neural Network for Pattern Classification.”</span> In <em>1995 International Joint Conference on Neural Networks (IJCNN)</em>, 1:124–29. <a href="https://doi.org/10.1109/IJCNN.1995.560260">https://doi.org/10.1109/IJCNN.1995.560260</a>.
+<div id="ref-openai2023gpt4" class="csl-entry" role="listitem">
+OpenAI. 2023. <span>“GPT‑4 Technical Report.”</span> <em>arXiv Preprint</em>. <a href="https://arxiv.org/abs/2303.08774">https://arxiv.org/abs/2303.08774</a>.
+</div>
+<div id="ref-ludermir1999weightless" class="csl-entry" role="listitem">
+Teresa Bernarda Ludermir, António P. Braga, André de Carvalho, and Marcílio C. P. de Souto. 1999. <span>“Weightless Neural Models: A Review of Current and Past Works.”</span> In <em>Neural Computing Surveys 2 - ICSI Berkeley</em>, 41–61. Berkeley, USA. <a href="https://www.cin.ufpe.br/~tbl/artigos/vol2_2-ncs-1999.pdf">https://www.cin.ufpe.br/~tbl/artigos/vol2_2-ncs-1999.pdf</a>.
 </div>
 </div>
 
