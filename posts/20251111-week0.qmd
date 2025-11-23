@@ -21,7 +21,7 @@ That's how a meta-heuristic prompt optimization came to be. Use NN/SA/TS/GA to d
 | Week | Milestone |
 |------|-----------|
 | 0    | Blog launch and research plan |
-| 1‑3  | Literature and ypothesis |
+| 1‑3  | Literature and hypothesis |
 | 4‑8  | Architecture design and simulation |
 | 9‑15  | Prototype and baseline |
 | 16‑24  | Experiments and ablations |
