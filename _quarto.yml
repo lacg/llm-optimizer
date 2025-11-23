@@ -3,8 +3,8 @@
 # -------------------------------------------------
 project:
   type: website
-  output-dir: docs               # folder that GitHub Pages will serve
-  title: "llm-optimizer"        # optional generic title
+  output-dir: docs        # folder that GitHub Pages will serve
+  title: "llm-optimizer"  # optional generic title
 
 # -------------------------------------------------
 # Global metadata – these become defaults for every .qmd
