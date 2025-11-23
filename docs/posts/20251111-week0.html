@@ -189,8 +189,8 @@ div.csl-indent {
 <p>The LLM Optimizer will start small. The main idea is to leverage my previous knowledge using Weightless Neural Networks (WNN <span class="citation" data-cites="ludermir1999weightless">(<a href="#ref-ludermir1999weightless" role="doc-biblioref">Teresa Bernarda Ludermir and Souto 1999</a>)</span>), Simulated Annealing (SA <span class="citation" data-cites="kirkpatrick1983annealing">(<a href="#ref-kirkpatrick1983annealing" role="doc-biblioref">Kirkpatrick, Gelatt, and Vecchi 1983</a>)</span>), Tabu Search (TS <span class="citation" data-cites="glover1989tabu1">(<a href="#ref-glover1989tabu1" role="doc-biblioref">Glover 1989</a>)</span>) and Genetic Algorithm (GA <span class="citation" data-cites="holland1975adaptation">(<a href="#ref-holland1975adaptation" role="doc-biblioref">Holland 1975</a>)</span>) for optimization tasks and apply to a modern problem, Large Language Models (LLM <span class="citation" data-cites="vaswani2017attention">(<a href="#ref-vaswani2017attention" role="doc-biblioref">Vaswani et al. 2017</a>)</span>, <span class="citation" data-cites="liu2022survey">(<a href="#ref-liu2022survey" role="doc-biblioref">Liu et al. 2021</a>)</span> and <span class="citation" data-cites="openai2023gpt4">(<a href="#ref-openai2023gpt4" role="doc-biblioref">OpenAI 2023</a>)</span>).</p>
 <p>That’s how a meta-heuristic prompt optimization came to be. Use NN/SA/TS/GA to discover high‑quality prompts for a target task. A tiny RAM‑net (a weightless neural network) is trained as a surrogate that quickly predicts how good a prompt will be, so the meta‑heuristic can explore millions of candidates without calling the LLM each time.</p>
 </section>
-<section id="timeline-example" class="level1">
-<h1>Timeline (example)</h1>
+<section id="timeline" class="level1">
+<h1>Timeline</h1>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -201,34 +201,41 @@ div.csl-indent {
 <tbody>
 <tr class="odd">
 <td>0</td>
-<td>Blog launch, research plan</td>
+<td>Blog launch and research plan</td>
 </tr>
 <tr class="even">
 <td>1‑3</td>
-<td>Literature &amp; Hypothesis</td>
+<td>Literature and ypothesis</td>
 </tr>
 <tr class="odd">
 <td>4‑8</td>
-<td>Architecture design &amp; simulation</td>
+<td>Architecture design and simulation</td>
 </tr>
 <tr class="even">
 <td>9‑15</td>
-<td>Prototype &amp; baseline</td>
+<td>Prototype and baseline</td>
 </tr>
 <tr class="odd">
 <td>16‑24</td>
-<td>Experiments &amp; ablations</td>
+<td>Experiments and ablations</td>
 </tr>
 <tr class="even">
 <td>25‑33</td>
-<td>Paper</td>
+<td>Writing paper</td>
 </tr>
 </tbody>
 </table>
 </section>
 <section id="novelty" class="level1">
 <h1>Novelty</h1>
-<p>Based on the literature, these are the load-bearing facts: :::{} 1. Weightless / LUT-style layers are being revisited for energy-efficient inference and have been integrated into transformer/ViT variants (Quasi-Weightless / LUT-based layers). This shows feasibility of weightless modules inside transformer-style networks <span class="citation" data-cites="nag2024shrinkinggiantquasiweightless">(<a href="#ref-nag2024shrinkinggiantquasiweightless" role="doc-biblioref">Nag et al. 2024</a>)</span>. 2. Differentiable variants of weightless networks (DWN) exist, enabling gradient-based training of lookup-table models via surrogates. That provides an option to either keep discrete WNNs and evolve parameters, or use differentiable surrogates <span class="citation" data-cites="bacellar2024differentiableweightlessneuralnetworks">(<a href="#ref-bacellar2024differentiableweightlessneuralnetworks" role="doc-biblioref">Bacellar et al. 2024</a>)</span>. 3. Memory-augmented transformer families and associative-memory transformer variants (for long context) have been proposed — e.g., ARMT and other memory transformer works — showing the research appetite for better memory mechanisms. This confirms the area is active, but not dominated by WNN approaches yet <span class="citation" data-cites="rodkin2025associativerecurrentmemorytransformer">(<a href="#ref-rodkin2025associativerecurrentmemorytransformer" role="doc-biblioref">Rodkin et al. 2025</a>)</span>. 4. Neuroevolution / evolutionary NAS has been applied to transformer architectures for locating operations, attention variants, and hybrid operations. This means applying GA/TS/SA to discrete WNN addressing/routing is a natural and novel cross-over <span class="citation" data-cites="yang2023evolutionaryneuralarchitecturesearch">(<a href="#ref-yang2023evolutionaryneuralarchitecturesearch" role="doc-biblioref">Yang et al. 2023</a>)</span>. 5. Edge/energy papers and recent 2024–2025 WNN+Transformer/ViT works indicate momentum but show the space is still sparse — room for a focused contribution that (a) integrates WNN as KV cache replacement, (b) uses neuroevolution for discrete addressing/routing, and (c) evaluates on long-context &amp; efficiency tradeoffs. In short: people have tried LUT layers and memory modules, but the specific combination I can propose (WNN as KV cache + GA/TS/SA optimized addressing + interpretability/energy evaluation) looks novel and publishable <span class="citation" data-cites="yang2023evolutionaryneuralarchitecturesearch">(<a href="#ref-yang2023evolutionaryneuralarchitecturesearch" role="doc-biblioref">Yang et al. 2023</a>)</span>. :::</p>
+<p>Based on the literature, these are the load-bearing facts:</p>
+<ol type="1">
+<li>Weightless / LUT-style layers are being revisited for energy-efficient inference and have been integrated into transformer/ViT variants (Quasi-Weightless / LUT-based layers). This shows feasibility of weightless modules inside transformer-style networks <span class="citation" data-cites="nag2024shrinkinggiantquasiweightless">(<a href="#ref-nag2024shrinkinggiantquasiweightless" role="doc-biblioref">Nag et al. 2024</a>)</span>.</li>
+<li>Differentiable variants of weightless networks (DWN) exist, enabling gradient-based training of lookup-table models via surrogates. That provides an option to either keep discrete WNNs and evolve parameters, or use differentiable surrogates <span class="citation" data-cites="bacellar2024differentiableweightlessneuralnetworks">(<a href="#ref-bacellar2024differentiableweightlessneuralnetworks" role="doc-biblioref">Bacellar et al. 2024</a>)</span>.</li>
+<li>Memory-augmented transformer families and associative-memory transformer variants (for long context) have been proposed — e.g., ARMT and other memory transformer works — showing the research appetite for better memory mechanisms. This confirms the area is active, but not dominated by WNN approaches yet <span class="citation" data-cites="rodkin2025associativerecurrentmemorytransformer">(<a href="#ref-rodkin2025associativerecurrentmemorytransformer" role="doc-biblioref">Rodkin et al. 2025</a>)</span>.</li>
+<li>Neuroevolution / evolutionary NAS has been applied to transformer architectures for locating operations, attention variants, and hybrid operations. This means applying GA/TS/SA to discrete WNN addressing/routing is a natural and novel cross-over <span class="citation" data-cites="yang2023evolutionaryneuralarchitecturesearch">(<a href="#ref-yang2023evolutionaryneuralarchitecturesearch" role="doc-biblioref">Yang et al. 2023</a>)</span>.</li>
+<li>Edge/energy papers and recent 2024–2025 WNN+Transformer/ViT works indicate momentum but show the space is still sparse — room for a focused contribution that (a) integrates WNN as KV cache replacement, (b) uses neuroevolution for discrete addressing/routing, and (c) evaluates on long-context &amp; efficiency tradeoffs. In short: people have tried LUT layers and memory modules, but the specific combination I can propose (WNN as KV cache + GA/TS/SA optimized addressing + interpretability/energy evaluation) looks novel and publishable <span class="citation" data-cites="yang2023evolutionaryneuralarchitecturesearch">(<a href="#ref-yang2023evolutionaryneuralarchitecturesearch" role="doc-biblioref">Yang et al. 2023</a>)</span>.</li>
+</ol>
 <p><strong>Bottom line on novelty</strong>: prior work demonstrates feasibility (weightless modules and memory-augmented transformers) and neuroevolution for NAS; however, the exact combination — WNN modules substituting/supplementing the KV cache + evolutionary search for discrete addressing/routing + detailed M-series energy/latency evaluation and interpretability analysis — appears to be a fresh contribution space with low prior saturation and good publishability.</p>
 </section>
 <section id="references" class="level1">
