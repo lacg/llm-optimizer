@@ -6,11 +6,10 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Luiz Alberto Crispiniano Garcia">
-<meta name="dcterms.date" content="2025-11-11">
-<meta name="description" content="News, tutorials and updates about LLM Optimizer">
+<meta name="author" content="Luiz Garcia">
+<meta name="dcterms.date" content="2025-12-03">
 
-<title>Blog – LLM Optimizer</title>
+<title>Week 1 – First steps – LLM Optimizer</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -23,7 +22,26 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="../site_libs/quarto-nav/quarto-nav.js"></script>
@@ -122,14 +140,9 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Blog</h1>
+<h1 class="title">Week 1 – First steps</h1>
 </div>
 
-<div>
-  <div class="description">
-    News, tutorials and updates about LLM Optimizer
-  </div>
-</div>
 
 
 <div class="quarto-title-meta">
@@ -137,34 +150,74 @@ ul.task-list li input[type="checkbox"] {
     <div>
     <div class="quarto-title-meta-heading">Author</div>
     <div class="quarto-title-meta-contents">
-             <p>Luiz Alberto Crispiniano Garcia </p>
+             <p>Luiz Garcia </p>
           </div>
   </div>
     
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">November 11, 2025</p>
+      <p class="date">December 3, 2025</p>
     </div>
   </div>
   
     
+    <div>
+    <div class="quarto-title-meta-heading">Doi</div>
+    <div class="quarto-title-meta-contents">
+      <p class="doi">
+        <a href="https://doi.org/10.5281/zenodo.17584973">10.5281/zenodo.17584973</a>
+      </p>
+    </div>
+  </div>
   </div>
   
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>Describing the baseline of the baseline architecture, the repository and the first toy experiments with results.</p>
+  </div>
+</div>
 
 
 </header>
 
 
-<section id="llm-optimizer-blog" class="level1">
-<h1>LLM Optimizer Blog</h1>
-<p>Welcome! Below you’ll find all of the posts in reverse‑chronological order.</p>
-<p><a href="../posts/20251203-week1.html">Week 1 - First steps</a> <a href="../posts/20251111-week0.html">Week 0 - Preparation</a></p>
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>After refreshing about Weightless Neuron Networks (WNNs) and understanding more Large Language Models (LLMs), I started to develop a small RAM based architecture and a toy project to test it out and create some traction and understanding.</p>
+</section>
+<section id="architecture" class="level1">
+<h1>Architecture</h1>
+<p>First, I started with a RAMNeuron, RAMLayer and a RAMAutomaton, but then learning more about PyTorch and how to improve a lot with vectorization, I tweaked the standard RAM neurons a little.</p>
+<p>So, today, the RAMNeurons are actually implemented by a vectorization class called Memory and RAMLayer is just a wrapper class to Memory. Memory also have a MemoryVal IntEnum representing what it stores. And finally, the RAMAutomaton was replaced by a RAMTransformer, which is not yet a Transformer, as known by the LLM Perceptron architecture, but it is it’s goal to become a weightless Transformer.</p>
+<p>The RAMTransformer has 3 layers based on a research I did during my undergrad years: 1. Input layer - linked directly to the input bits. 2. State layer - linked with the state layer output and with some input layer output. This allows context and make the network learn with time/context. 3. Output layer - linked with the input layer and state layer and providing the network output.</p>
+</section>
+<section id="repository" class="level1">
+<h1>Repository</h1>
+<p>The code is stored on <a href="https://github.com/lacg/wnn">GitHub</a> where a more detailed explanation about the architecture is laid down.</p>
+</section>
+<section id="toy-problem" class="level1">
+<h1>Toy problem</h1>
+<p>In order to test it out the architecture, I used a simple problem, simple enough to initially not even need a state layer.</p>
+<p>The problem is the <strong>parity check</strong>.</p>
+<p>So, I defined three phases, where all hidden neurons were connected to the only neuron on the output layer (the parity check is a classifier of one bit, True or False for parity): 1. testing the network with only input layer (no state layer): a. x neurons with y connections, where y were smaller than the number of input bits n; but x * y &gt; n, to allow all input bits were linked to an input neuron. b. 1 neuron with n connections, where n were the input size. Output layer were connected to the only one hidden neuron. 2. testing the network with input and state layers, so we can have a window. The limitation with #1 is that the higher the parity check, the higher is the number of input neurons/bits. Having a state to give context of the previous parity checks, it allows the network to do a parity check on every m bits at a time, allowing an unlimitted size of bits to do a parity check.</p>
+</section>
+<section id="results" class="level1">
+<h1>Results</h1>
+<p>1.a. For parity checks up to 4 bits, 100% was common, if not the norm. Between 5-6, it became harder and harder, where the network started to cluster some neurons on nearby hamming distances and 90%, and 98-99% being common, but 100% rare. Above that up to 12 bits… 92-99% was the norm, depending on the parameters. As this is a toy problem used for PoC, I won’t go further on analysis of those parameters as this could be a complete paper per si and out of focus to where I want to achieve. It provided enough clarity for me to theorize 1.b. 1.b. 1 input neuron linked to all input bits and output neuron linked to the input neuron. As the parity check is a deterministic problem, if the learning algorithm for the WNN was correct, this architecture should make the network converge to the answer. I tested the parity from 1-12 with 100% and fast. Then I jumped to parity check for 20 bits and 25 bits, where is was also 100% acceptance rate, but it took 6h and 27h respectively. 2. 1.b. showed me the network and the algorithm was correct and could properly converge. And also its limitation… which brought me to the idea of an window, which the state layer would help and require an improvement on the learning algorithm. As the teaching now will need to backpropagate the training on many iterations through some paths taken on the network and its hidden layers.</p>
+<p>That is where I am now.</p>
+</section>
+<section id="references" class="level1">
+<h1>References</h1>
+<div id="refs" role="list">
+
+</div>
 
 
 </section>
 
-<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div><a rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a></div></div></section></div></main> <!-- /main -->
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div>CC-BY-NC-SA-4.0</div></div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     const icon = "";
