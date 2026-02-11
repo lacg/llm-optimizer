@@ -1,0 +1,59 @@
+---
+title: "Week 6 -- Coarse-to-Fine Search and Fitness Calculators"
+author: "Luiz Garcia"
+date: 2026-01-12
+abstract: |
+  Built a structured optimization pipeline: coarse GA search narrows the space,
+  fine TS search refines. Introduced fitness calculators for multi-objective optimization.
+doi: "10.5281/zenodo.17584973"
+license: "CC-BY-NC-SA-4.0"
+format: html
+---
+
+# Summary
+
+With the tiered architecture showing promise, the challenge became systematic search. This week introduced the **coarse-to-fine phased search** pipeline and **fitness calculators** that balance cross-entropy and accuracy.
+
+# Phased Search Pipeline
+
+The optimization now runs in phases, each optimizing one dimension while fixing others:
+
+1. **Phase 1**: GA optimizes neuron counts (bits fixed)
+2. **Phase 2**: TS refines neuron counts
+3. **Phase 3**: GA optimizes bit widths (neurons fixed)
+4. **Phase 4**: TS refines bit widths
+5. **Phase 5**: GA optimizes connectivity (architecture fixed)
+6. **Phase 6**: TS refines connectivity
+
+Each phase seeds from the previous phase's best genome. This structured decomposition avoids the curse of simultaneously searching a massive joint space.
+
+# Fitness Calculators
+
+A fundamental question: should we optimize for cross-entropy (CE) or accuracy? They often disagree --- a genome with the best CE might not have the best accuracy, and vice versa.
+
+Introduced `FitnessCalculatorType`:
+
+- **CE**: Pure cross-entropy ranking
+- **HARMONIC_RANK**: Weighted harmonic mean of CE rank and accuracy rank
+
+The harmonic rank balances both objectives: a genome that's rank 1 in CE but rank 50 in accuracy scores worse than one that's rank 3 in both. This prevents optimizing for one metric at the expense of the other.
+
+# Adaptive Parameter Scaling
+
+GA and TS now support progressive accuracy thresholds --- a form of curriculum learning for the optimizer itself. Early generations accept any genome; later generations require increasing minimum accuracy. This prevents the population from getting stuck on degenerate solutions.
+
+# Metal GPU for Adaptive Evaluation
+
+Extended the Rust accelerator to handle heterogeneous per-cluster configurations on Metal GPU. Previously, GPU evaluation required uniform architecture; now each cluster can have different bits and neurons while still running on GPU.
+
+# Connection-Preserving Genome
+
+When GA mutates neuron count or bit width, the genome now preserves existing connections where possible. Adding a neuron copies connections from a random existing neuron; removing drops the worst-performing one. This preserves learned connectivity patterns across mutations.
+
+# Results
+
+The phased search with YAML configs and checkpoint support enabled overnight runs that explore hundreds of configurations automatically, with crash recovery via gzip-compressed checkpoints.
+
+# Next
+
+Need tooling to manage and visualize all these experiments --- which leads to the dashboard and experiments manager.

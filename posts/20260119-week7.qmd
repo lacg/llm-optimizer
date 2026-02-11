@@ -1,0 +1,65 @@
+---
+title: "Week 7 -- Experiments Manager and Dashboard"
+author: "Luiz Garcia"
+date: 2026-01-19
+abstract: |
+  Built an experiments management system and a SvelteKit dashboard for
+  real-time monitoring of optimization runs.
+doi: "10.5281/zenodo.17584973"
+license: "CC-BY-NC-SA-4.0"
+format: html
+---
+
+# Summary
+
+With overnight runs producing hundreds of experiment results, the need for proper experiment management became acute. This week introduced a complete tooling stack: experiments manager, REST API, and a real-time SvelteKit dashboard.
+
+# Experiments Manager
+
+Built a system with Flow/Checkpoint abstractions:
+
+- **Flow**: A named sequence of optimization phases (e.g., "bitwise v3")
+- **Checkpoint**: Serialized state at any point, enabling resume after crashes
+- **CLI tool**: Command-line interface for creating, listing, and managing flows
+
+This replaced ad-hoc JSON files with a structured approach to experiment tracking.
+
+# SvelteKit Dashboard
+
+Built a web dashboard (SvelteKit, Svelte 4) for monitoring experiments:
+
+- **Flows CRUD**: Create, view, edit, delete optimization flows
+- **Real-time updates**: WebSocket connection for live progress
+- **Phase comparison tables**: Side-by-side metrics across optimization phases
+- **Checkpoint management**: Resume interrupted experiments from the UI
+
+The dashboard connects to a FastAPI backend that wraps the experiments manager.
+
+# GPU Sparse Evaluation
+
+Extended the Metal GPU accelerator to handle sparse memory groups (neurons with >12 bits per neuron):
+
+- Training uses DashMap on CPU (lock-free concurrent hash map)
+- Evaluation exports to sorted arrays for GPU binary search
+- O(log n) lookups with coalesced memory access on Metal
+
+This was necessary because high-bit neurons have address spaces too large for dense memory (2^20 = 1M entries per neuron).
+
+# Parallel Hybrid Genome Evaluation
+
+Implemented `evaluate_genomes_parallel_hybrid()` for maximum GA/TS throughput:
+
+- Memory pool with 8 reusable instances to avoid OOM
+- Multiple genomes train concurrently using the pool
+- Dense groups (bits <= 12) evaluated on CPU, sparse groups (bits > 12) on GPU
+- Pipelining: CPU trains batch N+1 while GPU evaluates batch N
+
+This achieved 4--8x speedup over sequential genome evaluation.
+
+# Phase Comparison Tables
+
+Added structured reporting: after each optimization phase, the system full-evaluates the top genomes on validation data and prints a comparison table showing CE, accuracy, and improvement across all phases.
+
+# Next
+
+The dashboard is functional but basic. Next week: full CRUD, charts, and an iOS companion app.

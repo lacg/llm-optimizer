@@ -1,55 +1,71 @@
 ---
 title: "About"
-description: "Learn more about the LLM Optimizer project, its goals, and the people behind it."
+description: "About the WNN Language Model research project."
 date: 2025-11-11
 author: "Luiz Alberto Crispiniano Garcia"
 ---
 
-# What is LLM Optimizer?
+# What is this project?
 
-LLM Optimizer is a lightweight, **open‑source toolkit** that helps developers and researchers tune large language models (LLMs) for specific downstream tasks.  
-It provides:
+This is an open research project investigating **Weightless Neural Networks** (WNNs) as an alternative to weighted neural networks for language modeling. The core question: can RAM-based lookup neurons --- with O(1) inference and no floating-point weights --- learn to predict language?
 
-* 🛠️ **Utilities** for prompt engineering, hyper‑parameter sweeps, and model‑selection pipelines.  
-* 📊 **Visualization** dashboards (built with Plotly/Dash) to inspect performance across runs.  
-* 🤝 **Extensible API** – you can plug in your own evaluation metrics, data loaders, or model wrappers.
+## Origin
 
-> **TL;DR:**  “Run fewer experiments, get better results.”
+The project started as an **LLM prompt optimizer** (hence the repository name), using meta-heuristic algorithms (GA, TS, SA) with a WNN surrogate model. During early architecture work, the WNN language model itself became the primary research focus.
 
----
+## Approach
 
-## Why was it created?
+Rather than training weights via gradient descent, we:
 
-The rapid proliferation of LLMs has made it easy to **train** or **fine‑tune**, but **hard** to know *which* fine‑tuning strategy actually works for a given problem.  
-LLM Optimizer fills that gap by:
+1. **Binary encoding**: Tokens are encoded as binary vectors. Each neuron observes a random subset of input bits (partial connectivity).
+2. **Memory-based learning**: Neurons store input-output mappings in ternary memory (TRUE/FALSE/EMPTY). New patterns are written directly --- no gradients needed.
+3. **Connectivity optimization**: GA and TS search over which input bits each neuron observes. This is the generalization mechanism --- neurons that see the right features generalize to unseen inputs.
+4. **Architecture search**: Per-cluster neurons and bits are optimized, creating asymmetric architectures where frequent tokens get more resources.
 
-1. **Standardising** the experimental workflow.  
-2. **Automating** the tedious parts (e.g., logging, checkpoint management).  
-3. **Sharing** reproducible pipelines so the community can build on each other’s work.
+## Key Architectures
 
----
+**Tiered RAMLM** (50K+ clusters, one per vocabulary token):
 
-## Project status
+- Tokens grouped into frequency tiers with different neuron/bit allocations
+- Asymmetric configs (e.g., 100 tokens @ 20 bits, 400 @ 12, rest @ 8) outperform uniform by 35%
+- Limited by sparse training data for rare tokens
 
-| Status | Description |
-|--------|-------------|
-| **Version** | `0.3.0 (alpha)` – still under heavy development |
-| **License** | CC BY‑4.0 NC (non‑commercial) – see `LICENSE` in the repo |
-| **Contributions** | Welcome! Fork the repo, open a PR, or discuss ideas in the Issues tab. |
-| **Documentation** | Full docs are in the `docs/` folder and on the website (this page). |
-| **Contact** | <a href="mailto:lacg@me.com">lacg@me.com</a> |
+**BitwiseRAMLM** (16 clusters, one per output bit):
 
----
+- Predicts P(bit_i=1 | context) for each of 16 bits
+- Token probabilities reconstructed via log-product over bits
+- Every neuron sees ALL training examples (vs ~20 per rare token in tiered)
+- Currently the best-performing architecture
+
+## Hardware
+
+**Mac Studio M4 Max** (2025): 16 CPU cores, 40 Metal GPU cores, 64 GB unified memory.
+
+Custom Rust+Metal accelerator provides ~800x speedup over pure Python, enabling population-based optimization with 50+ candidate architectures evaluated in parallel.
+
+## Tools
+
+- **Dashboard**: SvelteKit web app for experiment management, real-time monitoring via WebSocket
+- **iOS app**: SwiftUI companion for monitoring experiments on iPad/iPhone
+- **Rust accelerator**: PyO3-based Python extension with Metal GPU compute shaders
+
+## Status
+
+| | |
+|---|---|
+| **Phase** | Architecture search and optimization |
+| **Repository** | [github.com/lacg/wnn](https://github.com/lacg/wnn) |
+| **License** | CC BY-NC-SA 4.0 (prose), MIT (code) |
+| **Contact** | [lacg@me.com](mailto:lacg@me.com) |
 
 ## How to cite
 
-If you use LLM Optimizer in a publication, please cite it as:
-
 ```bibtex
-@software{llm_optimizer,
+@software{wnn_lm,
   author = {Crispiniano Garcia, Luiz Alberto},
-  title  = {LLM Optimizer},
+  title  = {Weightless Neural Networks for Language Modeling},
   year   = {2025},
-  url    = {https://github.com/lacg/llm-optimizer},
+  url    = {https://github.com/lacg/wnn},
   license = {CC BY-NC-SA 4.0}
 }
+```

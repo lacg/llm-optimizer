@@ -1,0 +1,33 @@
+---
+title: "Week 3 -- KV Memory and Transformer Foundations"
+author: "Luiz Garcia"
+date: 2025-12-22
+abstract: |
+  Initial work on key-value memory mechanisms and laying the groundwork
+  for the RAM Transformer architecture.
+doi: "10.5281/zenodo.17584973"
+license: "CC-BY-NC-SA-4.0"
+format: html
+---
+
+# Summary
+
+Short week due to holidays, but important conceptual work on how RAM neurons can implement key-value memory --- a critical building block for attention mechanisms.
+
+# KV Memory Spec
+
+Designed `KVSpec`, a configuration class defining how RAM neurons partition their address space into key bits and value bits. The idea:
+
+- **k_bits** determine which "head" to read/write (hard routing)
+- **v_bits** store the actual value
+- A query with all-zero value bits triggers a read; non-zero triggers a write
+
+This is the RAM equivalent of the KV cache in weighted transformers, but with O(1) lookup instead of O(n) attention computation.
+
+# Design Decisions
+
+The key insight this week: RAM neurons naturally implement **associative memory**. Given an address (key), they return the stored value in one lookup. The challenge is making this work compositionally --- having multiple neurons agree on what to store and retrieve.
+
+# Next
+
+With the KV memory spec in place, the next step is building the full attention mechanism and the multi-layer RAM Transformer.

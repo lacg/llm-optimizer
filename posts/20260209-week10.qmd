@@ -1,0 +1,107 @@
+---
+title: "Week 10 -- Bitwise Architecture and Plug-and-Play Gating"
+author: "Luiz Garcia"
+date: 2026-02-09
+abstract: |
+  Introduced BitwiseRAMLM --- a per-bit output language model with only 16 clusters
+  that outperforms the 50K-cluster tiered architecture. Plus plug-and-play gating
+  that works across both architectures.
+doi: "10.5281/zenodo.17584973"
+license: "CC-BY-NC-SA-4.0"
+format: html
+---
+
+# Summary
+
+The most significant architectural breakthrough of the project. Instead of 50K+ clusters (one per token), the **BitwiseRAMLM** uses just 16 clusters --- one per output bit. This simple change addresses the fundamental data density problem that plagued the tiered architecture.
+
+# BitwiseRAMLM
+
+The core insight: rather than predicting "which token comes next" directly (50K-way classification), predict each bit of the token's binary encoding independently:
+
+$$\log P(\text{token}=t) = \sum_{i=0}^{15} \left[ b_i(t) \cdot \log P_i + (1-b_i(t)) \cdot \log(1-P_i) \right]$$
+
+where $b_i(t)$ is the $i$-th bit of token $t$'s binary encoding and $P_i = P(\text{bit}_i = 1 \mid \text{context})$.
+
+**Why this works better:**
+
+| | Tiered (50K clusters) | Bitwise (16 clusters) |
+|---|---|---|
+| Clusters | 50,257 | 16 |
+| Training examples per cluster | ~20 (rare tokens) | ~150,000 (ALL examples) |
+| Data density | Severely sparse for rare tokens | Every neuron sees everything |
+| Address space utilization | Many EMPTY cells | Dense training |
+
+# 4-State Memory Modes
+
+Introduced QUAD memory modes for BitwiseRAMLM:
+
+- **TERNARY** (mode 0): Original 3-state (FALSE/TRUE/EMPTY), majority vote
+- **QUAD_BINARY** (mode 1): 4-state nudging with binary threshold (cell >= 2 means true)
+- **QUAD_WEIGHTED** (mode 2): 4-state nudging with weighted confidence
+
+The 4-state modes handle contradictory training examples gracefully --- instead of the last writer wins, cells accumulate evidence.
+
+# 7-Phase Optimization Pipeline
+
+Built a complete optimization pipeline for BitwiseRAMLM:
+
+1. Grid search (neurons x bits landscape scan)
+2. GA neurons (bits fixed from grid search)
+3. TS neurons refinement
+4. GA bits (neurons fixed)
+5. TS bits refinement
+6. GA connections (architecture fixed)
+7. TS connections refinement
+
+# Neuron-Parallel Training + Metal CE
+
+The Rust accelerator was extended for bitwise:
+
+- **Neuron-parallel training**: Each of 16 clusters trains independently, enabling massive parallelism
+- **Metal GPU CE**: The reconstruction matmul (16 bits x 50K tokens) runs on Metal
+- **23x speedup** for the full train+eval pipeline
+
+# Full-Rust BitwiseEvaluator
+
+The `BitwiseEvaluator` supports heterogeneous per-cluster configs (different neurons and bits per cluster) with automatic Rust+Metal batch evaluation. 50 genomes are evaluated in parallel.
+
+# Plug-and-Play Gating
+
+Extracted gating into a standalone `GatingTrainer` that works with both architectures:
+
+- **GatingMode.TOKEN_LEVEL**: Universal, vocab_size gates (works with any architecture)
+- **GatingMode.BIT_LEVEL**: Bitwise-specific, 16 gates that confidence-weight bit predictions
+- **GatingMode.DUAL_STAGE**: Both --- bit gating then token gating
+
+The trainer is architecture-agnostic: pass `cluster_order` for tiered encoding, omit it for bitwise.
+
+# Routing Experiments
+
+Also explored routing-based approaches:
+
+- Deterministic routing using input-observable features
+- Selective expert evaluation (4x speedup by skipping irrelevant experts)
+- Input feature analysis for optimal routing strategies
+
+# Refactored GA/TS
+
+Major cleanup of the optimization infrastructure:
+
+- `OptimizationConfig` base class shared by GA and TS
+- Pluggable hooks for monitoring and intervention
+- Unified `optimize()` loops
+
+# Results
+
+The bitwise architecture with QUAD_WEIGHTED memory is currently the best performer:
+
+- **CE ~10.1** (vs ~10.3 for best tiered)
+- **PPL ~24,000** (vs ~30,000 for best tiered)
+- **Accuracy ~5.8%** (vs ~5.3% for best tiered)
+
+Still far from GPT-2's ~3.4 CE / ~29 PPL, but the gap between tiered and bitwise demonstrates that data density is a critical bottleneck for RAM-based language models.
+
+# Next
+
+Continue optimizing the bitwise architecture. The gating mechanism is now ready for systematic testing across all three modes. The DUAL_STAGE mode (bit gating + token gating) is the most promising unexplored direction.

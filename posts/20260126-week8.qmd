@@ -1,0 +1,61 @@
+---
+title: "Week 8 -- Full Dashboard, iOS App, and Gating"
+author: "Luiz Garcia"
+date: 2026-01-26
+abstract: |
+  Shipped a complete dashboard with charts and real-time updates, an iOS/iPadOS
+  companion app, and the first gating experiments.
+doi: "10.5281/zenodo.17584973"
+license: "CC-BY-NC-SA-4.0"
+format: html
+---
+
+# Summary
+
+The busiest week in terms of features shipped. The dashboard went from basic CRUD to a full monitoring platform with charts and live updates. An iOS companion app was built from scratch. And the first gating mechanism (inspired by DeepSeek's Engram) was implemented and tested.
+
+# Dashboard v2
+
+Major dashboard improvements:
+
+- **Live charts**: Real-time CE and accuracy plots per generation/iteration
+- **Tooltips**: Hover over data points for detailed genome statistics
+- **WebSocket**: Full duplex updates --- experiments push progress to the dashboard
+- **Flow templates**: Pre-configured optimization flows for common setups
+- **Stop/restart**: Graceful shutdown chain with checkpoint save before stopping
+
+The data model was redesigned (v2) with the database as the source of truth, removing the intermediate "Phase" abstraction layer.
+
+# iOS/iPadOS App
+
+Built a SwiftUI companion app for monitoring experiments on the go:
+
+- Experiment iteration lists with expandable detail sections
+- Charts for tracking optimization progress
+- Flow management (create, stop, resume)
+- iPad adaptive layouts with 10-column iterations view
+- Connects to the same FastAPI backend as the web dashboard
+
+# RAM-based Gating
+
+Implemented content-based gating inspired by DeepSeek's Engram architecture:
+
+- **RAMGating**: Dedicated RAM neurons learn which clusters should be active for each input context
+- **Majority voting**: N neurons per gate, gate opens if majority fires TRUE
+- **Staged training**: Train RAM first (freeze), then train gating (Stage 2)
+- **Rust acceleration**: rayon parallelization achieving 16x speedup
+
+The gating model observes the same input bits as the main model but produces a binary mask over clusters. This is the RAM equivalent of attention-based gating.
+
+Initial results with gating on the tiered architecture were mixed --- it didn't consistently improve over ungated scores. The hypothesis is that 50K+ clusters (one per token) is too many for the gating model to learn meaningful patterns. This motivates the bitwise architecture developed later.
+
+# Other Improvements
+
+- Normalized harmonic fitness calculator
+- Accuracy floor for GA/TS (prevents degenerate genomes)
+- Checkpoint resumption improvements
+- Memory leak fixes in Metal evaluators with buffer pooling
+
+# Next
+
+The gating underperformance with tiered architecture, combined with data density insights, points toward a fundamentally different approach --- the bitwise architecture with only 16 clusters.

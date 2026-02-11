@@ -8,7 +8,7 @@
 
 <meta name="author" content="Luiz Alberto Crispiniano Garcia">
 <meta name="dcterms.date" content="2025-11-11">
-<meta name="description" content="Learn more about the LLM Optimizer project, its goals, and the people behind it.">
+<meta name="description" content="About the WNN Language Model research project.">
 
 <title>About – LLM Optimizer</title>
 <style>
@@ -22,6 +22,41 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -127,7 +162,7 @@ ul.task-list li input[type="checkbox"] {
 
 <div>
   <div class="description">
-    Learn more about the LLM Optimizer project, its goals, and the people behind it.
+    About the WNN Language Model research project.
   </div>
 </div>
 
@@ -156,76 +191,84 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="what-is-llm-optimizer" class="level1">
-<h1>What is LLM Optimizer?</h1>
-<p>LLM Optimizer is a lightweight, <strong>open‑source toolkit</strong> that helps developers and researchers tune large language models (LLMs) for specific downstream tasks.<br>
-It provides:</p>
-<ul>
-<li>🛠️ <strong>Utilities</strong> for prompt engineering, hyper‑parameter sweeps, and model‑selection pipelines.<br>
-</li>
-<li>📊 <strong>Visualization</strong> dashboards (built with Plotly/Dash) to inspect performance across runs.<br>
-</li>
-<li>🤝 <strong>Extensible API</strong> – you can plug in your own evaluation metrics, data loaders, or model wrappers.</li>
-</ul>
-<blockquote class="blockquote">
-<p><strong>TL;DR:</strong> “Run fewer experiments, get better results.”</p>
-</blockquote>
-<hr>
-<section id="why-was-it-created" class="level2">
-<h2 class="anchored" data-anchor-id="why-was-it-created">Why was it created?</h2>
-<p>The rapid proliferation of LLMs has made it easy to <strong>train</strong> or <strong>fine‑tune</strong>, but <strong>hard</strong> to know <em>which</em> fine‑tuning strategy actually works for a given problem.<br>
-LLM Optimizer fills that gap by:</p>
-<ol type="1">
-<li><strong>Standardising</strong> the experimental workflow.<br>
-</li>
-<li><strong>Automating</strong> the tedious parts (e.g., logging, checkpoint management).<br>
-</li>
-<li><strong>Sharing</strong> reproducible pipelines so the community can build on each other’s work.</li>
-</ol>
-<hr>
+<section id="what-is-this-project" class="level1">
+<h1>What is this project?</h1>
+<p>This is an open research project investigating <strong>Weightless Neural Networks</strong> (WNNs) as an alternative to weighted neural networks for language modeling. The core question: can RAM-based lookup neurons — with O(1) inference and no floating-point weights — learn to predict language?</p>
+<section id="origin" class="level2">
+<h2 class="anchored" data-anchor-id="origin">Origin</h2>
+<p>The project started as an <strong>LLM prompt optimizer</strong> (hence the repository name), using meta-heuristic algorithms (GA, TS, SA) with a WNN surrogate model. During early architecture work, the WNN language model itself became the primary research focus.</p>
 </section>
-<section id="project-status" class="level2">
-<h2 class="anchored" data-anchor-id="project-status">Project status</h2>
+<section id="approach" class="level2">
+<h2 class="anchored" data-anchor-id="approach">Approach</h2>
+<p>Rather than training weights via gradient descent, we:</p>
+<ol type="1">
+<li><strong>Binary encoding</strong>: Tokens are encoded as binary vectors. Each neuron observes a random subset of input bits (partial connectivity).</li>
+<li><strong>Memory-based learning</strong>: Neurons store input-output mappings in ternary memory (TRUE/FALSE/EMPTY). New patterns are written directly — no gradients needed.</li>
+<li><strong>Connectivity optimization</strong>: GA and TS search over which input bits each neuron observes. This is the generalization mechanism — neurons that see the right features generalize to unseen inputs.</li>
+<li><strong>Architecture search</strong>: Per-cluster neurons and bits are optimized, creating asymmetric architectures where frequent tokens get more resources.</li>
+</ol>
+</section>
+<section id="key-architectures" class="level2">
+<h2 class="anchored" data-anchor-id="key-architectures">Key Architectures</h2>
+<p><strong>Tiered RAMLM</strong> (50K+ clusters, one per vocabulary token):</p>
+<ul>
+<li>Tokens grouped into frequency tiers with different neuron/bit allocations</li>
+<li>Asymmetric configs (e.g., 100 tokens @ 20 bits, 400 @ 12, rest @ 8) outperform uniform by 35%</li>
+<li>Limited by sparse training data for rare tokens</li>
+</ul>
+<p><strong>BitwiseRAMLM</strong> (16 clusters, one per output bit):</p>
+<ul>
+<li>Predicts P(bit_i=1 | context) for each of 16 bits</li>
+<li>Token probabilities reconstructed via log-product over bits</li>
+<li>Every neuron sees ALL training examples (vs ~20 per rare token in tiered)</li>
+<li>Currently the best-performing architecture</li>
+</ul>
+</section>
+<section id="hardware" class="level2">
+<h2 class="anchored" data-anchor-id="hardware">Hardware</h2>
+<p><strong>Mac Studio M4 Max</strong> (2025): 16 CPU cores, 40 Metal GPU cores, 64 GB unified memory.</p>
+<p>Custom Rust+Metal accelerator provides ~800x speedup over pure Python, enabling population-based optimization with 50+ candidate architectures evaluated in parallel.</p>
+</section>
+<section id="tools" class="level2">
+<h2 class="anchored" data-anchor-id="tools">Tools</h2>
+<ul>
+<li><strong>Dashboard</strong>: SvelteKit web app for experiment management, real-time monitoring via WebSocket</li>
+<li><strong>iOS app</strong>: SwiftUI companion for monitoring experiments on iPad/iPhone</li>
+<li><strong>Rust accelerator</strong>: PyO3-based Python extension with Metal GPU compute shaders</li>
+</ul>
+</section>
+<section id="status" class="level2">
+<h2 class="anchored" data-anchor-id="status">Status</h2>
 <table class="caption-top table">
-<colgroup>
-<col style="width: 38%">
-<col style="width: 61%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Status</th>
-<th>Description</th>
-</tr>
-</thead>
 <tbody>
 <tr class="odd">
-<td><strong>Version</strong></td>
-<td><code>0.3.0 (alpha)</code> – still under heavy development</td>
+<td><strong>Phase</strong></td>
+<td>Architecture search and optimization</td>
 </tr>
 <tr class="even">
+<td><strong>Repository</strong></td>
+<td><a href="https://github.com/lacg/wnn">github.com/lacg/wnn</a></td>
+</tr>
+<tr class="odd">
 <td><strong>License</strong></td>
-<td>CC BY‑4.0 NC (non‑commercial) – see <code>LICENSE</code> in the repo</td>
-</tr>
-<tr class="odd">
-<td><strong>Contributions</strong></td>
-<td>Welcome! Fork the repo, open a PR, or discuss ideas in the Issues tab.</td>
+<td>CC BY-NC-SA 4.0 (prose), MIT (code)</td>
 </tr>
 <tr class="even">
-<td><strong>Documentation</strong></td>
-<td>Full docs are in the <code>docs/</code> folder and on the website (this page).</td>
-</tr>
-<tr class="odd">
 <td><strong>Contact</strong></td>
 <td><a href="mailto:lacg@me.com">lacg@me.com</a></td>
 </tr>
 </tbody>
 </table>
-<hr>
 </section>
 <section id="how-to-cite" class="level2">
 <h2 class="anchored" data-anchor-id="how-to-cite">How to cite</h2>
-<p>If you use LLM Optimizer in a publication, please cite it as:</p>
-<p>```bibtex <span class="citation" data-cites="software">(<a href="#ref-software" role="doc-biblioref"><strong>software?</strong></a>)</span>{llm_optimizer, author = {Crispiniano Garcia, Luiz Alberto}, title = {LLM Optimizer}, year = {2025}, url = {https://github.com/lacg/llm-optimizer}, license = {CC BY-NC-SA 4.0} }</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">@software{wnn_lm,</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co">  author = {Crispiniano Garcia, Luiz Alberto},</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">  title  = {Weightless Neural Networks for Language Modeling},</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">  year   = {2025},</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">  url    = {https://github.com/lacg/wnn},</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">  license = {CC BY-NC-SA 4.0}</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 
 
 </section>
