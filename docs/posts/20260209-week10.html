@@ -308,11 +308,11 @@ window.Quarto = {
 <h1>Results</h1>
 <p>The bitwise architecture with QUAD_WEIGHTED memory is currently the best performer:</p>
 <ul>
-<li><strong>CE ~10.1</strong> (vs ~10.3 for best tiered)</li>
-<li><strong>PPL ~24,000</strong> (vs ~30,000 for best tiered)</li>
-<li><strong>Accuracy ~5.8%</strong> (vs ~5.3% for best tiered)</li>
+<li><strong>CE ~9.11</strong> (vs ~10.3 for best tiered) — from v3 GA bits optimization</li>
+<li><strong>PPL ~9,000</strong> (vs ~30,000 for best tiered)</li>
+<li><strong>Accuracy ~6.4%</strong> (grid search baseline; drops to ~3.8% at best CE due to CE/accuracy tradeoff)</li>
 </ul>
-<p>Still far from GPT-2’s ~3.4 CE / ~29 PPL, but the gap between tiered and bitwise demonstrates that data density is a critical bottleneck for RAM-based language models.</p>
+<p>Still far from GPT-2’s ~3.4 CE / ~29 PPL, but the 3x PPL improvement over tiered (9K vs 30K) confirms that data density is the critical bottleneck for RAM-based language models.</p>
 </section>
 <section id="next" class="level1">
 <h1>Next</h1>

@@ -96,11 +96,11 @@ Major cleanup of the optimization infrastructure:
 
 The bitwise architecture with QUAD_WEIGHTED memory is currently the best performer:
 
-- **CE ~10.1** (vs ~10.3 for best tiered)
-- **PPL ~24,000** (vs ~30,000 for best tiered)
-- **Accuracy ~5.8%** (vs ~5.3% for best tiered)
+- **CE ~9.11** (vs ~10.3 for best tiered) --- from v3 GA bits optimization
+- **PPL ~9,000** (vs ~30,000 for best tiered)
+- **Accuracy ~6.4%** (grid search baseline; drops to ~3.8% at best CE due to CE/accuracy tradeoff)
 
-Still far from GPT-2's ~3.4 CE / ~29 PPL, but the gap between tiered and bitwise demonstrates that data density is a critical bottleneck for RAM-based language models.
+Still far from GPT-2's ~3.4 CE / ~29 PPL, but the 3x PPL improvement over tiered (9K vs 30K) confirms that data density is the critical bottleneck for RAM-based language models.
 
 # Next
 
