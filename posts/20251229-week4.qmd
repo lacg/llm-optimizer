@@ -1,0 +1,72 @@
+---
+title: "Week 4 -- RAM Transformer and the Big Sprint"
+author: "Luiz Garcia"
+date: 2025-12-29
+abstract: |
+  The most productive week yet. Built the complete RAM Transformer architecture,
+  comprehensive benchmarks, and started the language model experiments.
+doi: "10.5281/zenodo.17584973"
+license: "CC-BY-NC-SA-4.0"
+format: html
+---
+
+# Summary
+
+This week saw 108 commits --- a complete architecture sprint that transformed the project from a toy parity checker into a real research platform. The RAM Transformer, multiple attention mechanisms, benchmark suite, and the first language model experiments all landed.
+
+# RAM Transformer Architecture
+
+Built a complete transformer-style architecture using RAM neurons:
+
+- **RAMTransformerBlock**: Attention + FFN with XOR residual connections
+- **Multiple attention variants**: SoftRAMAttention (learned), PositionOnlyAttention (computed, 100% generalization), ComputedSortingAttention, ComputedMinMaxAttention
+- **Cross-attention**: RAMCrossAttention for encoder-decoder models
+- **FFN variants**: Including computed operations (increment, ROT13, Caesar cipher) that achieve 100% generalization
+
+The key distinction is between **learned** operations (limited to trained patterns) and **computed** operations (100% generalization via algorithmic implementation).
+
+# Comprehensive Benchmarks
+
+Tested across a wide range of tasks:
+
+| Task | Accuracy | Notes |
+|------|----------|-------|
+| bAbI story understanding | 100% | Simple QA from stories |
+| Theorem proving | 100% | Logical deduction |
+| Code completion | 100% | Pattern-based |
+| Sorting | 100% | Computed attention |
+| Arithmetic | 100% | Computed FFN |
+| SCAN/ListOps | Partial | Compositional generalization harder |
+| Language modeling | 79% | First attempt, simple setup |
+
+# Language Model v2
+
+Started the `ram_lm_v2` benchmark --- the first real attempt at WikiText-2 language modeling with RAM neurons. Key components:
+
+- GPT-2 tokenizer (50,257 vocab)
+- Cluster-based output (neurons per token)
+- Perplexity and cross-entropy scoring
+- GA/TS connectivity optimization
+
+Initial results were far from transformer-level but established the evaluation framework.
+
+# Rust+Metal Accelerator
+
+The Python evaluation was too slow for population-based optimization (50 genomes x full WikiText-2). Built a Rust accelerator with PyO3 bindings:
+
+- **rayon** for CPU parallelism (16 cores)
+- **Metal** compute shaders for GPU evaluation (40 cores)
+- **822x speedup** over pure Python for batch evaluation
+
+This made overnight optimization runs feasible.
+
+# Other Notable Additions
+
+- Kneser-Ney smoothing, BPE tokenizer support
+- Contrastive learning and curriculum training
+- Sparse memory backend for high-bit neurons
+- Overfitting detection in evaluation
+
+# Next
+
+With the infrastructure in place, the focus shifts to architecture search --- finding the right neuron counts, bit widths, and connectivity patterns for language modeling.

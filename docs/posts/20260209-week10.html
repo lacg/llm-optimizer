@@ -6,10 +6,10 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Luiz Alberto Crispiniano Garcia">
-<meta name="dcterms.date" content="2025-11-11">
+<meta name="author" content="Luiz Garcia">
+<meta name="dcterms.date" content="2026-02-09">
 
-<title>Home – LLM Optimizer</title>
+<title>Week 10 – Bitwise Architecture and Plug-and-Play Gating – LLM Optimizer</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -25,25 +25,25 @@ ul.task-list li input[type="checkbox"] {
 </style>
 
 
-<script src="site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="site_libs/quarto-nav/headroom.min.js"></script>
-<script src="site_libs/clipboard/clipboard.min.js"></script>
-<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="site_libs/quarto-search/fuse.min.js"></script>
-<script src="site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="./">
-<link href="./favicon.ico" rel="icon">
-<script src="site_libs/quarto-html/quarto.js" type="module"></script>
-<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
-<script src="site_libs/quarto-html/popper.min.js"></script>
-<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="site_libs/quarto-html/anchor.min.js"></script>
-<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-b758ccaa5987ceb1b75504551e579abf.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-2ec1ecde4794cf0ca2676fdbadd3167b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../favicon.ico" rel="icon">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-b758ccaa5987ceb1b75504551e579abf.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-2ec1ecde4794cf0ca2676fdbadd3167b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -72,6 +72,35 @@ ul.task-list li input[type="checkbox"] {
   }
 }</script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 </head>
 
@@ -82,7 +111,7 @@ ul.task-list li input[type="checkbox"] {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a class="navbar-brand" href="./index.html">
+    <a class="navbar-brand" href="../index.html">
     <span class="navbar-title">LLM Optimizer</span>
     </a>
   </div>
@@ -93,15 +122,15 @@ ul.task-list li input[type="checkbox"] {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
+    <a class="nav-link" href="../index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./posts/"> 
+    <a class="nav-link" href="../posts/"> 
 <span class="menu-text">Blog</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./about.html"> 
+    <a class="nav-link" href="../about.html"> 
 <span class="menu-text">About</span></a>
   </li>  
 </ul>
@@ -121,7 +150,7 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Home</h1>
+<h1 class="title">Week 10 – Bitwise Architecture and Plug-and-Play Gating</h1>
 </div>
 
 
@@ -131,89 +160,168 @@ ul.task-list li input[type="checkbox"] {
     <div>
     <div class="quarto-title-meta-heading">Author</div>
     <div class="quarto-title-meta-contents">
-             <p>Luiz Alberto Crispiniano Garcia </p>
+             <p>Luiz Garcia </p>
           </div>
   </div>
     
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">November 11, 2025</p>
+      <p class="date">February 9, 2026</p>
     </div>
   </div>
   
     
+    <div>
+    <div class="quarto-title-meta-heading">Doi</div>
+    <div class="quarto-title-meta-contents">
+      <p class="doi">
+        <a href="https://doi.org/10.5281/zenodo.17584973">10.5281/zenodo.17584973</a>
+      </p>
+    </div>
+  </div>
   </div>
   
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>Introduced BitwiseRAMLM — a per-bit output language model with only 16 clusters that outperforms the 50K-cluster tiered architecture. Plus plug-and-play gating that works across both architectures.</p>
+  </div>
+</div>
 
 
 </header>
 
 
-<section id="weightless-neural-networks-for-language-modeling" class="level1">
-<h1>Weightless Neural Networks for Language Modeling</h1>
-<p>This research explores whether <strong>Weightless Neural Networks</strong> (WNNs) — specifically RAM-based neurons — can serve as a foundation for language modeling, traditionally dominated by weighted transformer architectures.</p>
-<section id="current-focus" class="level2">
-<h2 class="anchored" data-anchor-id="current-focus">Current Focus</h2>
-<p>Building a complete RAM-based language model pipeline:</p>
-<ul>
-<li><strong>BitwiseRAMLM</strong>: 16-cluster per-bit output architecture with log-product token reconstruction</li>
-<li><strong>Connectivity optimization</strong>: Genetic Algorithm + Tabu Search over neuron connectivity patterns</li>
-<li><strong>Rust+Metal acceleration</strong>: Full pipeline on Apple Silicon (16 CPU + 40 GPU cores)</li>
-<li><strong>Gating mechanisms</strong>: Content-based filtering inspired by DeepSeek’s Engram architecture</li>
-</ul>
+<section id="summary" class="level1">
+<h1>Summary</h1>
+<p>The most significant architectural breakthrough of the project. Instead of 50K+ clusters (one per token), the <strong>BitwiseRAMLM</strong> uses just 16 clusters — one per output bit. This simple change addresses the fundamental data density problem that plagued the tiered architecture.</p>
 </section>
-<section id="key-results" class="level2">
-<h2 class="anchored" data-anchor-id="key-results">Key Results</h2>
+<section id="bitwiseramlm" class="level1">
+<h1>BitwiseRAMLM</h1>
+<p>The core insight: rather than predicting “which token comes next” directly (50K-way classification), predict each bit of the token’s binary encoding independently:</p>
+<p><span class="math display">\[\log P(\text{token}=t) = \sum_{i=0}^{15} \left[ b_i(t) \cdot \log P_i + (1-b_i(t)) \cdot \log(1-P_i) \right]\]</span></p>
+<p>where <span class="math inline">\(b_i(t)\)</span> is the <span class="math inline">\(i\)</span>-th bit of token <span class="math inline">\(t\)</span>’s binary encoding and <span class="math inline">\(P_i = P(\text{bit}_i = 1 \mid \text{context})\)</span>.</p>
+<p><strong>Why this works better:</strong></p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
 </colgroup>
 <thead>
 <tr class="header">
-<th>Architecture</th>
-<th>Best CE</th>
-<th>Best PPL</th>
-<th>Best Acc</th>
-<th>Notes</th>
+<th></th>
+<th>Tiered (50K clusters)</th>
+<th>Bitwise (16 clusters)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Tiered (50K clusters)</td>
-<td>~10.3</td>
-<td>~30,000</td>
-<td>~5.3%</td>
-<td>Asymmetric bit allocation</td>
+<td>Clusters</td>
+<td>50,257</td>
+<td>16</td>
 </tr>
 <tr class="even">
-<td>Bitwise (16 clusters)</td>
-<td>~10.1</td>
-<td>~24,000</td>
-<td>~5.8%</td>
-<td>Per-bit prediction + reconstruction</td>
+<td>Training examples per cluster</td>
+<td>~20 (rare tokens)</td>
+<td>~150,000 (ALL examples)</td>
+</tr>
+<tr class="odd">
+<td>Data density</td>
+<td>Severely sparse for rare tokens</td>
+<td>Every neuron sees everything</td>
+</tr>
+<tr class="even">
+<td>Address space utilization</td>
+<td>Many EMPTY cells</td>
+<td>Dense training</td>
 </tr>
 </tbody>
 </table>
-<p><em>Evaluated on WikiText-2 with GPT-2 tokenizer (50,257 vocab). For reference, GPT-2 small (124M params) achieves ~3.4 CE / ~29 PPL.</em></p>
 </section>
-<section id="weekly-updates" class="level2">
-<h2 class="anchored" data-anchor-id="weekly-updates">Weekly Updates</h2>
-<p>Follow the research progress in the <a href="posts/">Blog</a>.</p>
+<section id="state-memory-modes" class="level1">
+<h1>4-State Memory Modes</h1>
+<p>Introduced QUAD memory modes for BitwiseRAMLM:</p>
+<ul>
+<li><strong>TERNARY</strong> (mode 0): Original 3-state (FALSE/TRUE/EMPTY), majority vote</li>
+<li><strong>QUAD_BINARY</strong> (mode 1): 4-state nudging with binary threshold (cell &gt;= 2 means true)</li>
+<li><strong>QUAD_WEIGHTED</strong> (mode 2): 4-state nudging with weighted confidence</li>
+</ul>
+<p>The 4-state modes handle contradictory training examples gracefully — instead of the last writer wins, cells accumulate evidence.</p>
 </section>
-<section id="repository" class="level2">
-<h2 class="anchored" data-anchor-id="repository">Repository</h2>
-<p>All code is at <a href="https://github.com/lacg/wnn">github.com/lacg/wnn</a>.</p>
+<section id="phase-optimization-pipeline" class="level1">
+<h1>7-Phase Optimization Pipeline</h1>
+<p>Built a complete optimization pipeline for BitwiseRAMLM:</p>
+<ol type="1">
+<li>Grid search (neurons x bits landscape scan)</li>
+<li>GA neurons (bits fixed from grid search)</li>
+<li>TS neurons refinement</li>
+<li>GA bits (neurons fixed)</li>
+<li>TS bits refinement</li>
+<li>GA connections (architecture fixed)</li>
+<li>TS connections refinement</li>
+</ol>
+</section>
+<section id="neuron-parallel-training-metal-ce" class="level1">
+<h1>Neuron-Parallel Training + Metal CE</h1>
+<p>The Rust accelerator was extended for bitwise:</p>
+<ul>
+<li><strong>Neuron-parallel training</strong>: Each of 16 clusters trains independently, enabling massive parallelism</li>
+<li><strong>Metal GPU CE</strong>: The reconstruction matmul (16 bits x 50K tokens) runs on Metal</li>
+<li><strong>23x speedup</strong> for the full train+eval pipeline</li>
+</ul>
+</section>
+<section id="full-rust-bitwiseevaluator" class="level1">
+<h1>Full-Rust BitwiseEvaluator</h1>
+<p>The <code>BitwiseEvaluator</code> supports heterogeneous per-cluster configs (different neurons and bits per cluster) with automatic Rust+Metal batch evaluation. 50 genomes are evaluated in parallel.</p>
+</section>
+<section id="plug-and-play-gating" class="level1">
+<h1>Plug-and-Play Gating</h1>
+<p>Extracted gating into a standalone <code>GatingTrainer</code> that works with both architectures:</p>
+<ul>
+<li><strong>GatingMode.TOKEN_LEVEL</strong>: Universal, vocab_size gates (works with any architecture)</li>
+<li><strong>GatingMode.BIT_LEVEL</strong>: Bitwise-specific, 16 gates that confidence-weight bit predictions</li>
+<li><strong>GatingMode.DUAL_STAGE</strong>: Both — bit gating then token gating</li>
+</ul>
+<p>The trainer is architecture-agnostic: pass <code>cluster_order</code> for tiered encoding, omit it for bitwise.</p>
+</section>
+<section id="routing-experiments" class="level1">
+<h1>Routing Experiments</h1>
+<p>Also explored routing-based approaches:</p>
+<ul>
+<li>Deterministic routing using input-observable features</li>
+<li>Selective expert evaluation (4x speedup by skipping irrelevant experts)</li>
+<li>Input feature analysis for optimal routing strategies</li>
+</ul>
+</section>
+<section id="refactored-gats" class="level1">
+<h1>Refactored GA/TS</h1>
+<p>Major cleanup of the optimization infrastructure:</p>
+<ul>
+<li><code>OptimizationConfig</code> base class shared by GA and TS</li>
+<li>Pluggable hooks for monitoring and intervention</li>
+<li>Unified <code>optimize()</code> loops</li>
+</ul>
+</section>
+<section id="results" class="level1">
+<h1>Results</h1>
+<p>The bitwise architecture with QUAD_WEIGHTED memory is currently the best performer:</p>
+<ul>
+<li><strong>CE ~10.1</strong> (vs ~10.3 for best tiered)</li>
+<li><strong>PPL ~24,000</strong> (vs ~30,000 for best tiered)</li>
+<li><strong>Accuracy ~5.8%</strong> (vs ~5.3% for best tiered)</li>
+</ul>
+<p>Still far from GPT-2’s ~3.4 CE / ~29 PPL, but the gap between tiered and bitwise demonstrates that data density is a critical bottleneck for RAM-based language models.</p>
+</section>
+<section id="next" class="level1">
+<h1>Next</h1>
+<p>Continue optimizing the bitwise architecture. The gating mechanism is now ready for systematic testing across all three modes. The DUAL_STAGE mode (bit gating + token gating) is the most promising unexplored direction.</p>
 
 
 </section>
-</section>
 
-<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div><a rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a></div></div></section></div></main> <!-- /main -->
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div>CC-BY-NC-SA-4.0</div></div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     const icon = "";

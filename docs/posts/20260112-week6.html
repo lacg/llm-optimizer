@@ -6,10 +6,10 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Luiz Alberto Crispiniano Garcia">
-<meta name="dcterms.date" content="2025-11-11">
+<meta name="author" content="Luiz Garcia">
+<meta name="dcterms.date" content="2026-01-12">
 
-<title>Home – LLM Optimizer</title>
+<title>Week 6 – Coarse-to-Fine Search and Fitness Calculators – LLM Optimizer</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -25,25 +25,25 @@ ul.task-list li input[type="checkbox"] {
 </style>
 
 
-<script src="site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="site_libs/quarto-nav/headroom.min.js"></script>
-<script src="site_libs/clipboard/clipboard.min.js"></script>
-<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="site_libs/quarto-search/fuse.min.js"></script>
-<script src="site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="./">
-<link href="./favicon.ico" rel="icon">
-<script src="site_libs/quarto-html/quarto.js" type="module"></script>
-<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
-<script src="site_libs/quarto-html/popper.min.js"></script>
-<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="site_libs/quarto-html/anchor.min.js"></script>
-<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-b758ccaa5987ceb1b75504551e579abf.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-2ec1ecde4794cf0ca2676fdbadd3167b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../favicon.ico" rel="icon">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-b758ccaa5987ceb1b75504551e579abf.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-2ec1ecde4794cf0ca2676fdbadd3167b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -82,7 +82,7 @@ ul.task-list li input[type="checkbox"] {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a class="navbar-brand" href="./index.html">
+    <a class="navbar-brand" href="../index.html">
     <span class="navbar-title">LLM Optimizer</span>
     </a>
   </div>
@@ -93,15 +93,15 @@ ul.task-list li input[type="checkbox"] {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
+    <a class="nav-link" href="../index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./posts/"> 
+    <a class="nav-link" href="../posts/"> 
 <span class="menu-text">Blog</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./about.html"> 
+    <a class="nav-link" href="../about.html"> 
 <span class="menu-text">About</span></a>
   </li>  
 </ul>
@@ -121,7 +121,7 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Home</h1>
+<h1 class="title">Week 6 – Coarse-to-Fine Search and Fitness Calculators</h1>
 </div>
 
 
@@ -131,89 +131,90 @@ ul.task-list li input[type="checkbox"] {
     <div>
     <div class="quarto-title-meta-heading">Author</div>
     <div class="quarto-title-meta-contents">
-             <p>Luiz Alberto Crispiniano Garcia </p>
+             <p>Luiz Garcia </p>
           </div>
   </div>
     
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">November 11, 2025</p>
+      <p class="date">January 12, 2026</p>
     </div>
   </div>
   
     
+    <div>
+    <div class="quarto-title-meta-heading">Doi</div>
+    <div class="quarto-title-meta-contents">
+      <p class="doi">
+        <a href="https://doi.org/10.5281/zenodo.17584973">10.5281/zenodo.17584973</a>
+      </p>
+    </div>
+  </div>
   </div>
   
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>Built a structured optimization pipeline: coarse GA search narrows the space, fine TS search refines. Introduced fitness calculators for multi-objective optimization.</p>
+  </div>
+</div>
 
 
 </header>
 
 
-<section id="weightless-neural-networks-for-language-modeling" class="level1">
-<h1>Weightless Neural Networks for Language Modeling</h1>
-<p>This research explores whether <strong>Weightless Neural Networks</strong> (WNNs) — specifically RAM-based neurons — can serve as a foundation for language modeling, traditionally dominated by weighted transformer architectures.</p>
-<section id="current-focus" class="level2">
-<h2 class="anchored" data-anchor-id="current-focus">Current Focus</h2>
-<p>Building a complete RAM-based language model pipeline:</p>
+<section id="summary" class="level1">
+<h1>Summary</h1>
+<p>With the tiered architecture showing promise, the challenge became systematic search. This week introduced the <strong>coarse-to-fine phased search</strong> pipeline and <strong>fitness calculators</strong> that balance cross-entropy and accuracy.</p>
+</section>
+<section id="phased-search-pipeline" class="level1">
+<h1>Phased Search Pipeline</h1>
+<p>The optimization now runs in phases, each optimizing one dimension while fixing others:</p>
+<ol type="1">
+<li><strong>Phase 1</strong>: GA optimizes neuron counts (bits fixed)</li>
+<li><strong>Phase 2</strong>: TS refines neuron counts</li>
+<li><strong>Phase 3</strong>: GA optimizes bit widths (neurons fixed)</li>
+<li><strong>Phase 4</strong>: TS refines bit widths</li>
+<li><strong>Phase 5</strong>: GA optimizes connectivity (architecture fixed)</li>
+<li><strong>Phase 6</strong>: TS refines connectivity</li>
+</ol>
+<p>Each phase seeds from the previous phase’s best genome. This structured decomposition avoids the curse of simultaneously searching a massive joint space.</p>
+</section>
+<section id="fitness-calculators" class="level1">
+<h1>Fitness Calculators</h1>
+<p>A fundamental question: should we optimize for cross-entropy (CE) or accuracy? They often disagree — a genome with the best CE might not have the best accuracy, and vice versa.</p>
+<p>Introduced <code>FitnessCalculatorType</code>:</p>
 <ul>
-<li><strong>BitwiseRAMLM</strong>: 16-cluster per-bit output architecture with log-product token reconstruction</li>
-<li><strong>Connectivity optimization</strong>: Genetic Algorithm + Tabu Search over neuron connectivity patterns</li>
-<li><strong>Rust+Metal acceleration</strong>: Full pipeline on Apple Silicon (16 CPU + 40 GPU cores)</li>
-<li><strong>Gating mechanisms</strong>: Content-based filtering inspired by DeepSeek’s Engram architecture</li>
+<li><strong>CE</strong>: Pure cross-entropy ranking</li>
+<li><strong>HARMONIC_RANK</strong>: Weighted harmonic mean of CE rank and accuracy rank</li>
 </ul>
+<p>The harmonic rank balances both objectives: a genome that’s rank 1 in CE but rank 50 in accuracy scores worse than one that’s rank 3 in both. This prevents optimizing for one metric at the expense of the other.</p>
 </section>
-<section id="key-results" class="level2">
-<h2 class="anchored" data-anchor-id="key-results">Key Results</h2>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Architecture</th>
-<th>Best CE</th>
-<th>Best PPL</th>
-<th>Best Acc</th>
-<th>Notes</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Tiered (50K clusters)</td>
-<td>~10.3</td>
-<td>~30,000</td>
-<td>~5.3%</td>
-<td>Asymmetric bit allocation</td>
-</tr>
-<tr class="even">
-<td>Bitwise (16 clusters)</td>
-<td>~10.1</td>
-<td>~24,000</td>
-<td>~5.8%</td>
-<td>Per-bit prediction + reconstruction</td>
-</tr>
-</tbody>
-</table>
-<p><em>Evaluated on WikiText-2 with GPT-2 tokenizer (50,257 vocab). For reference, GPT-2 small (124M params) achieves ~3.4 CE / ~29 PPL.</em></p>
+<section id="adaptive-parameter-scaling" class="level1">
+<h1>Adaptive Parameter Scaling</h1>
+<p>GA and TS now support progressive accuracy thresholds — a form of curriculum learning for the optimizer itself. Early generations accept any genome; later generations require increasing minimum accuracy. This prevents the population from getting stuck on degenerate solutions.</p>
 </section>
-<section id="weekly-updates" class="level2">
-<h2 class="anchored" data-anchor-id="weekly-updates">Weekly Updates</h2>
-<p>Follow the research progress in the <a href="posts/">Blog</a>.</p>
+<section id="metal-gpu-for-adaptive-evaluation" class="level1">
+<h1>Metal GPU for Adaptive Evaluation</h1>
+<p>Extended the Rust accelerator to handle heterogeneous per-cluster configurations on Metal GPU. Previously, GPU evaluation required uniform architecture; now each cluster can have different bits and neurons while still running on GPU.</p>
 </section>
-<section id="repository" class="level2">
-<h2 class="anchored" data-anchor-id="repository">Repository</h2>
-<p>All code is at <a href="https://github.com/lacg/wnn">github.com/lacg/wnn</a>.</p>
+<section id="connection-preserving-genome" class="level1">
+<h1>Connection-Preserving Genome</h1>
+<p>When GA mutates neuron count or bit width, the genome now preserves existing connections where possible. Adding a neuron copies connections from a random existing neuron; removing drops the worst-performing one. This preserves learned connectivity patterns across mutations.</p>
+</section>
+<section id="results" class="level1">
+<h1>Results</h1>
+<p>The phased search with YAML configs and checkpoint support enabled overnight runs that explore hundreds of configurations automatically, with crash recovery via gzip-compressed checkpoints.</p>
+</section>
+<section id="next" class="level1">
+<h1>Next</h1>
+<p>Need tooling to manage and visualize all these experiments — which leads to the dashboard and experiments manager.</p>
 
 
 </section>
-</section>
 
-<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div><a rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a></div></div></section></div></main> <!-- /main -->
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div>CC-BY-NC-SA-4.0</div></div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     const icon = "";

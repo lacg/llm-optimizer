@@ -1,12 +1,10 @@
---- 
-title: "Blog"
-description: "News, tutorials and updates about LLM Optimizer"
-date: 2025-11-11
 ---
-
-# LLM Optimizer Blog
-
-Welcome! Below you’ll find all of the posts in reverse‑chronological order.
-
-[Week 1 - First steps](20251203-week1.qmd)
-[Week 0 - Preparation](20251111-week0.qmd)
+title: "Blog"
+description: "Weekly research updates on Weightless Neural Networks for Language Modeling"
+listing:
+  contents: "*.qmd"
+  sort: "date desc"
+  type: default
+  fields: [date, title, author, description]
+  date-format: "YYYY-MM-DD"
+---

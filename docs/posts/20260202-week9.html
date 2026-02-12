@@ -6,10 +6,10 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Luiz Alberto Crispiniano Garcia">
-<meta name="dcterms.date" content="2025-11-11">
+<meta name="author" content="Luiz Garcia">
+<meta name="dcterms.date" content="2026-02-02">
 
-<title>Home – LLM Optimizer</title>
+<title>Week 9 – Data Model Migration and Tiered Architecture Deep Dive – LLM Optimizer</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -25,25 +25,25 @@ ul.task-list li input[type="checkbox"] {
 </style>
 
 
-<script src="site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="site_libs/quarto-nav/headroom.min.js"></script>
-<script src="site_libs/clipboard/clipboard.min.js"></script>
-<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="site_libs/quarto-search/fuse.min.js"></script>
-<script src="site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="./">
-<link href="./favicon.ico" rel="icon">
-<script src="site_libs/quarto-html/quarto.js" type="module"></script>
-<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
-<script src="site_libs/quarto-html/popper.min.js"></script>
-<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="site_libs/quarto-html/anchor.min.js"></script>
-<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-b758ccaa5987ceb1b75504551e579abf.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-2ec1ecde4794cf0ca2676fdbadd3167b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../favicon.ico" rel="icon">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-b758ccaa5987ceb1b75504551e579abf.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-2ec1ecde4794cf0ca2676fdbadd3167b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -82,7 +82,7 @@ ul.task-list li input[type="checkbox"] {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a class="navbar-brand" href="./index.html">
+    <a class="navbar-brand" href="../index.html">
     <span class="navbar-title">LLM Optimizer</span>
     </a>
   </div>
@@ -93,15 +93,15 @@ ul.task-list li input[type="checkbox"] {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
+    <a class="nav-link" href="../index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./posts/"> 
+    <a class="nav-link" href="../posts/"> 
 <span class="menu-text">Blog</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./about.html"> 
+    <a class="nav-link" href="../about.html"> 
 <span class="menu-text">About</span></a>
   </li>  
 </ul>
@@ -121,7 +121,7 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Home</h1>
+<h1 class="title">Week 9 – Data Model Migration and Tiered Architecture Deep Dive</h1>
 </div>
 
 
@@ -131,89 +131,110 @@ ul.task-list li input[type="checkbox"] {
     <div>
     <div class="quarto-title-meta-heading">Author</div>
     <div class="quarto-title-meta-contents">
-             <p>Luiz Alberto Crispiniano Garcia </p>
+             <p>Luiz Garcia </p>
           </div>
   </div>
     
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">November 11, 2025</p>
+      <p class="date">February 2, 2026</p>
     </div>
   </div>
   
     
+    <div>
+    <div class="quarto-title-meta-heading">Doi</div>
+    <div class="quarto-title-meta-contents">
+      <p class="doi">
+        <a href="https://doi.org/10.5281/zenodo.17584973">10.5281/zenodo.17584973</a>
+      </p>
+    </div>
+  </div>
   </div>
   
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>Major data model migration removing the Phase abstraction, plus deep work on tiered architecture with Metal GPU sparse forward and tier bits grid sweep.</p>
+  </div>
+</div>
 
 
 </header>
 
 
-<section id="weightless-neural-networks-for-language-modeling" class="level1">
-<h1>Weightless Neural Networks for Language Modeling</h1>
-<p>This research explores whether <strong>Weightless Neural Networks</strong> (WNNs) — specifically RAM-based neurons — can serve as a foundation for language modeling, traditionally dominated by weighted transformer architectures.</p>
-<section id="current-focus" class="level2">
-<h2 class="anchored" data-anchor-id="current-focus">Current Focus</h2>
-<p>Building a complete RAM-based language model pipeline:</p>
+<section id="summary" class="level1">
+<h1>Summary</h1>
+<p>The most commit-heavy week (136 commits). Two parallel tracks: cleaning up the data model architecture and pushing the tiered language model to its limits with systematic grid sweeps.</p>
+</section>
+<section id="phase-layer-removal" class="level1">
+<h1>Phase Layer Removal</h1>
+<p>The biggest refactoring effort: removing the “Phase” layer from the data model. Previously, experiments were organized as Flow &gt; Phase &gt; Experiment. Analysis showed the Phase layer added complexity without value — experiments could be organized directly under flows.</p>
+<p>This was a “Big Bang” migration affecting:</p>
 <ul>
-<li><strong>BitwiseRAMLM</strong>: 16-cluster per-bit output architecture with log-product token reconstruction</li>
-<li><strong>Connectivity optimization</strong>: Genetic Algorithm + Tabu Search over neuron connectivity patterns</li>
-<li><strong>Rust+Metal acceleration</strong>: Full pipeline on Apple Silicon (16 CPU + 40 GPU cores)</li>
-<li><strong>Gating mechanisms</strong>: Content-based filtering inspired by DeepSeek’s Engram architecture</li>
+<li>Database schema (normalized data model)</li>
+<li>REST API endpoints</li>
+<li>Dashboard frontend (all components updated)</li>
+<li>iOS app (adapted to new data model)</li>
+<li>Checkpoint format</li>
 </ul>
 </section>
-<section id="key-results" class="level2">
-<h2 class="anchored" data-anchor-id="key-results">Key Results</h2>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Architecture</th>
-<th>Best CE</th>
-<th>Best PPL</th>
-<th>Best Acc</th>
-<th>Notes</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Tiered (50K clusters)</td>
-<td>~10.3</td>
-<td>~30,000</td>
-<td>~5.3%</td>
-<td>Asymmetric bit allocation</td>
-</tr>
-<tr class="even">
-<td>Bitwise (16 clusters)</td>
-<td>~10.1</td>
-<td>~24,000</td>
-<td>~5.8%</td>
-<td>Per-bit prediction + reconstruction</td>
-</tr>
-</tbody>
-</table>
-<p><em>Evaluated on WikiText-2 with GPT-2 tokenizer (50,257 vocab). For reference, GPT-2 small (124M params) achieves ~3.4 CE / ~29 PPL.</em></p>
+<section id="ios-app-improvements" class="level1">
+<h1>iOS App Improvements</h1>
+<p>Significant iOS work this week:</p>
+<ul>
+<li>Xcode project setup with proper signing</li>
+<li>App icon</li>
+<li>iPad 10-column iterations view</li>
+<li>Expandable sections for experiment details</li>
+<li>Gating run visualization with tier statistics</li>
+<li>Self-signed certificate support for local development</li>
+</ul>
 </section>
-<section id="weekly-updates" class="level2">
-<h2 class="anchored" data-anchor-id="weekly-updates">Weekly Updates</h2>
-<p>Follow the research progress in the <a href="posts/">Blog</a>.</p>
+<section id="tiered-architecture-grid-sweep" class="level1">
+<h1>Tiered Architecture: Grid Sweep</h1>
+<p>Ran a systematic grid sweep of tier bit configurations — <strong>729 configurations</strong> testing different bit allocations across 3 tiers. This confirmed and refined the asymmetric insight from Week 5:</p>
+<ul>
+<li>Best configs consistently allocate more bits to frequent tiers</li>
+<li>The optimal ratio is roughly proportional to log(data_density)</li>
+<li>Extreme asymmetry (e.g., 24/8/4) underperforms moderate asymmetry (20/12/8)</li>
+</ul>
 </section>
-<section id="repository" class="level2">
-<h2 class="anchored" data-anchor-id="repository">Repository</h2>
-<p>All code is at <a href="https://github.com/lacg/wnn">github.com/lacg/wnn</a>.</p>
+<section id="metal-gpu-sparse-forward" class="level1">
+<h1>Metal GPU Sparse Forward</h1>
+<p>Implemented sparse forward pass on Metal GPU for the tiered architecture:</p>
+<ul>
+<li>Neurons with &gt;12 bits use sorted array + binary search on GPU</li>
+<li>Neurons with &lt;=12 bits use dense lookup on CPU</li>
+<li>Hybrid CPU+GPU evaluation for heterogeneous architectures</li>
+</ul>
+</section>
+<section id="ramclusterbase-abc" class="level1">
+<h1>RAMClusterBase ABC</h1>
+<p>Refactored the cluster layer hierarchy with a proper abstract base class (<code>RAMClusterBase</code>), enabling both tiered and future architectures to share the same interface for GA/TS optimization.</p>
+</section>
+<section id="gating-api" class="level1">
+<h1>Gating API</h1>
+<p>Extended the gating system with RESTful API endpoints:</p>
+<ul>
+<li>Trigger gating training via API call</li>
+<li>Real-time gating progress via WebSocket</li>
+<li>Per-tier gate activation statistics</li>
+</ul>
+</section>
+<section id="hybrid-ramtransformer" class="level1">
+<h1>Hybrid RAM+Transformer</h1>
+<p>Started exploring hybrid architectures (workstreams WS0-WS3) that combine RAM neurons for fast pattern caching with lightweight transformer layers for long-range dependencies. Early exploration, not yet yielding results.</p>
+</section>
+<section id="next" class="level1">
+<h1>Next</h1>
+<p>The tiered architecture is hitting diminishing returns. The gating experiments suggest the problem is too many clusters (50K+). Time to try a radically different approach: bitwise output.</p>
 
 
 </section>
-</section>
 
-<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div><a rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a></div></div></section></div></main> <!-- /main -->
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div>CC-BY-NC-SA-4.0</div></div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     const icon = "";

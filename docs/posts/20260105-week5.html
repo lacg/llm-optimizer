@@ -6,10 +6,10 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Luiz Alberto Crispiniano Garcia">
-<meta name="dcterms.date" content="2025-11-11">
+<meta name="author" content="Luiz Garcia">
+<meta name="dcterms.date" content="2026-01-05">
 
-<title>Home – LLM Optimizer</title>
+<title>Week 5 – Tiered Architecture and Asymmetric Discovery – LLM Optimizer</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -25,25 +25,25 @@ ul.task-list li input[type="checkbox"] {
 </style>
 
 
-<script src="site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="site_libs/quarto-nav/headroom.min.js"></script>
-<script src="site_libs/clipboard/clipboard.min.js"></script>
-<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="site_libs/quarto-search/fuse.min.js"></script>
-<script src="site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="./">
-<link href="./favicon.ico" rel="icon">
-<script src="site_libs/quarto-html/quarto.js" type="module"></script>
-<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
-<script src="site_libs/quarto-html/popper.min.js"></script>
-<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="site_libs/quarto-html/anchor.min.js"></script>
-<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-b758ccaa5987ceb1b75504551e579abf.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-2ec1ecde4794cf0ca2676fdbadd3167b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../favicon.ico" rel="icon">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-b758ccaa5987ceb1b75504551e579abf.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-2ec1ecde4794cf0ca2676fdbadd3167b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -82,7 +82,7 @@ ul.task-list li input[type="checkbox"] {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a class="navbar-brand" href="./index.html">
+    <a class="navbar-brand" href="../index.html">
     <span class="navbar-title">LLM Optimizer</span>
     </a>
   </div>
@@ -93,15 +93,15 @@ ul.task-list li input[type="checkbox"] {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
+    <a class="nav-link" href="../index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./posts/"> 
+    <a class="nav-link" href="../posts/"> 
 <span class="menu-text">Blog</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./about.html"> 
+    <a class="nav-link" href="../about.html"> 
 <span class="menu-text">About</span></a>
   </li>  
 </ul>
@@ -121,7 +121,7 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Home</h1>
+<h1 class="title">Week 5 – Tiered Architecture and Asymmetric Discovery</h1>
 </div>
 
 
@@ -131,89 +131,103 @@ ul.task-list li input[type="checkbox"] {
     <div>
     <div class="quarto-title-meta-heading">Author</div>
     <div class="quarto-title-meta-contents">
-             <p>Luiz Alberto Crispiniano Garcia </p>
+             <p>Luiz Garcia </p>
           </div>
   </div>
     
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">November 11, 2025</p>
+      <p class="date">January 5, 2026</p>
     </div>
   </div>
   
     
+    <div>
+    <div class="quarto-title-meta-heading">Doi</div>
+    <div class="quarto-title-meta-contents">
+      <p class="doi">
+        <a href="https://doi.org/10.5281/zenodo.17584973">10.5281/zenodo.17584973</a>
+      </p>
+    </div>
+  </div>
   </div>
   
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>Discovered that asymmetric bit allocation across frequency tiers dramatically improves language model performance. Built overnight sweep infrastructure.</p>
+  </div>
+</div>
 
 
 </header>
 
 
-<section id="weightless-neural-networks-for-language-modeling" class="level1">
-<h1>Weightless Neural Networks for Language Modeling</h1>
-<p>This research explores whether <strong>Weightless Neural Networks</strong> (WNNs) — specifically RAM-based neurons — can serve as a foundation for language modeling, traditionally dominated by weighted transformer architectures.</p>
-<section id="current-focus" class="level2">
-<h2 class="anchored" data-anchor-id="current-focus">Current Focus</h2>
-<p>Building a complete RAM-based language model pipeline:</p>
-<ul>
-<li><strong>BitwiseRAMLM</strong>: 16-cluster per-bit output architecture with log-product token reconstruction</li>
-<li><strong>Connectivity optimization</strong>: Genetic Algorithm + Tabu Search over neuron connectivity patterns</li>
-<li><strong>Rust+Metal acceleration</strong>: Full pipeline on Apple Silicon (16 CPU + 40 GPU cores)</li>
-<li><strong>Gating mechanisms</strong>: Content-based filtering inspired by DeepSeek’s Engram architecture</li>
-</ul>
+<section id="summary" class="level1">
+<h1>Summary</h1>
+<p>The central discovery this week: <strong>not all tokens deserve the same architecture</strong>. Frequent tokens (which have abundant training data) benefit from more bits per neuron, while rare tokens (sparse data) need fewer bits to avoid empty memory cells.</p>
 </section>
-<section id="key-results" class="level2">
-<h2 class="anchored" data-anchor-id="key-results">Key Results</h2>
+<section id="tiered-sparse-memory" class="level1">
+<h1>Tiered Sparse Memory</h1>
+<p>Implemented a tiered architecture where the vocabulary is split into frequency-based tiers, each with its own neuron count and bit width:</p>
+<pre><code>Tier 0: 100 most frequent tokens  (46% of data)  → 15 neurons, 20 bits
+Tier 1: 400 medium tokens         (13% of data)  → 10 neurons, 12 bits
+Tier 2: 50K+ rare tokens          (40% of data)  →  5 neurons,  8 bits</code></pre>
+</section>
+<section id="the-asymmetric-insight" class="level1">
+<h1>The Asymmetric Insight</h1>
 <table class="caption-top table">
-<colgroup>
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-</colgroup>
 <thead>
 <tr class="header">
-<th>Architecture</th>
-<th>Best CE</th>
-<th>Best PPL</th>
-<th>Best Acc</th>
-<th>Notes</th>
+<th>Configuration</th>
+<th>Test PPL</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Tiered (50K clusters)</td>
-<td>~10.3</td>
-<td>~30,000</td>
-<td>~5.3%</td>
-<td>Asymmetric bit allocation</td>
+<td>Asymmetric (20/12/8 bits)</td>
+<td><strong>36,853</strong></td>
 </tr>
 <tr class="even">
-<td>Bitwise (16 clusters)</td>
-<td>~10.1</td>
-<td>~24,000</td>
-<td>~5.8%</td>
-<td>Per-bit prediction + reconstruction</td>
+<td>Uniform (20/20/20 bits)</td>
+<td>49,675</td>
 </tr>
 </tbody>
 </table>
-<p><em>Evaluated on WikiText-2 with GPT-2 tokenizer (50,257 vocab). For reference, GPT-2 small (124M params) achieves ~3.4 CE / ~29 PPL.</em></p>
+<p>The asymmetric config achieves <strong>35% better perplexity</strong>. The reason is training data density per address space:</p>
+<ul>
+<li>Tier 0 tokens have ~11,000 examples each → can fill 2^20 addresses</li>
+<li>Tier 2 tokens have ~20 examples each → 2^20 addresses are mostly EMPTY</li>
+</ul>
+<p>When a neuron encounters an EMPTY address, it returns 0.5 (maximum entropy) — pure noise. Fewer bits = smaller address space = more cells actually trained.</p>
 </section>
-<section id="weekly-updates" class="level2">
-<h2 class="anchored" data-anchor-id="weekly-updates">Weekly Updates</h2>
-<p>Follow the research progress in the <a href="posts/">Blog</a>.</p>
+<section id="overnight-sweep-infrastructure" class="level1">
+<h1>Overnight Sweep Infrastructure</h1>
+<p>Built tooling for systematic architecture exploration:</p>
+<ul>
+<li>Per-tier metrics (accuracy broken down by tier)</li>
+<li>Skip-completed experiments (resume interrupted sweeps)</li>
+<li>Validation PPL on held-out data</li>
+<li>JSON output for downstream analysis</li>
+</ul>
 </section>
-<section id="repository" class="level2">
-<h2 class="anchored" data-anchor-id="repository">Repository</h2>
-<p>All code is at <a href="https://github.com/lacg/wnn">github.com/lacg/wnn</a>.</p>
+<section id="per-cluster-optimization" class="level1">
+<h1>Per-Cluster Optimization</h1>
+<p>Moved from global GA/TS (same config for all clusters) to per-cluster optimization. Each of the 50K+ clusters can independently have different neuron counts and bit widths. This created a much larger search space but allowed fine-grained adaptation.</p>
+</section>
+<section id="hybrid-cpugpu-evaluation" class="level1">
+<h1>Hybrid CPU+GPU Evaluation</h1>
+<p>Extended the Rust accelerator with a hybrid mode that splits work between CPU (rayon, 16 cores) and GPU (Metal, 40 cores) simultaneously, providing ~2x additional speedup.</p>
+</section>
+<section id="next" class="level1">
+<h1>Next</h1>
+<p>The tier configuration space is large. Need a more structured search approach — which leads to the phased coarse-to-fine search developed next week.</p>
 
 
 </section>
-</section>
 
-<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div><a rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a></div></div></section></div></main> <!-- /main -->
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div>CC-BY-NC-SA-4.0</div></div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     const icon = "";

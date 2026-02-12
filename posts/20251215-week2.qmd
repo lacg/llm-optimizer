@@ -1,0 +1,33 @@
+---
+title: "Week 2 -- Vectorization and Architecture Cleanup"
+author: "Luiz Garcia"
+date: 2025-12-15
+abstract: |
+  Improving the core architecture with PyTorch vectorization and cleaning up
+  the foundation for what will become the RAM Transformer.
+doi: "10.5281/zenodo.17584973"
+license: "CC-BY-NC-SA-4.0"
+format: html
+---
+
+# Summary
+
+A quieter week focused on engineering improvements rather than new features. The parity check experiments from Week 1 revealed that the Python-level loops in the original RAMNeuron implementation were a bottleneck. This week was about fixing that.
+
+# Vectorization
+
+The main effort was converting the RAMNeuron/RAMLayer code from per-neuron Python loops to batched PyTorch tensor operations. The `Memory` class now handles address computation and lookup for all neurons in a single vectorized call, which eliminated the O(neurons) Python overhead.
+
+This also led to cleaning up the class hierarchy:
+
+- `RAMNeuron` was absorbed into `Memory` (vectorized storage)
+- `RAMLayer` became a thin wrapper around `Memory`
+- `RAMAutomaton` was renamed to prepare for the Transformer-style architecture
+
+# Multi-step Training
+
+Started exploring multi-step training where the network sees sequences rather than single examples. This is the precursor to the state layer backpropagation mentioned at the end of Week 1.
+
+# Next
+
+The vectorized foundation is now solid enough to build more complex architectures on top. Next: attention mechanisms and the full RAM Transformer.

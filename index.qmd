@@ -2,4 +2,32 @@
 title: "Home"
 ---
 
-Welcome to the LLM Optimizer website!
+# Weightless Neural Networks for Language Modeling
+
+This research explores whether **Weightless Neural Networks** (WNNs) --- specifically RAM-based neurons --- can serve as a foundation for language modeling, traditionally dominated by weighted transformer architectures.
+
+## Current Focus
+
+Building a complete RAM-based language model pipeline:
+
+- **BitwiseRAMLM**: 16-cluster per-bit output architecture with log-product token reconstruction
+- **Connectivity optimization**: Genetic Algorithm + Tabu Search over neuron connectivity patterns
+- **Rust+Metal acceleration**: Full pipeline on Apple Silicon (16 CPU + 40 GPU cores)
+- **Gating mechanisms**: Content-based filtering inspired by DeepSeek's Engram architecture
+
+## Key Results
+
+| Architecture | Best CE | Best PPL | Best Acc | Notes |
+|---|---|---|---|---|
+| Tiered (50K clusters) | ~10.3 | ~30,000 | ~5.3% | Asymmetric bit allocation |
+| Bitwise (16 clusters) | ~10.1 | ~24,000 | ~5.8% | Per-bit prediction + reconstruction |
+
+*Evaluated on WikiText-2 with GPT-2 tokenizer (50,257 vocab). For reference, GPT-2 small (124M params) achieves ~3.4 CE / ~29 PPL.*
+
+## Weekly Updates
+
+Follow the research progress in the [Blog](posts/).
+
+## Repository
+
+All code is at [github.com/lacg/wnn](https://github.com/lacg/wnn).

@@ -1,0 +1,74 @@
+---
+title: "Week 9 -- Data Model Migration and Tiered Architecture Deep Dive"
+author: "Luiz Garcia"
+date: 2026-02-02
+abstract: |
+  Major data model migration removing the Phase abstraction, plus deep work on
+  tiered architecture with Metal GPU sparse forward and tier bits grid sweep.
+doi: "10.5281/zenodo.17584973"
+license: "CC-BY-NC-SA-4.0"
+format: html
+---
+
+# Summary
+
+The most commit-heavy week (136 commits). Two parallel tracks: cleaning up the data model architecture and pushing the tiered language model to its limits with systematic grid sweeps.
+
+# Phase Layer Removal
+
+The biggest refactoring effort: removing the "Phase" layer from the data model. Previously, experiments were organized as Flow > Phase > Experiment. Analysis showed the Phase layer added complexity without value --- experiments could be organized directly under flows.
+
+This was a "Big Bang" migration affecting:
+
+- Database schema (normalized data model)
+- REST API endpoints
+- Dashboard frontend (all components updated)
+- iOS app (adapted to new data model)
+- Checkpoint format
+
+# iOS App Improvements
+
+Significant iOS work this week:
+
+- Xcode project setup with proper signing
+- App icon
+- iPad 10-column iterations view
+- Expandable sections for experiment details
+- Gating run visualization with tier statistics
+- Self-signed certificate support for local development
+
+# Tiered Architecture: Grid Sweep
+
+Ran a systematic grid sweep of tier bit configurations --- **729 configurations** testing different bit allocations across 3 tiers. This confirmed and refined the asymmetric insight from Week 5:
+
+- Best configs consistently allocate more bits to frequent tiers
+- The optimal ratio is roughly proportional to log(data_density)
+- Extreme asymmetry (e.g., 24/8/4) underperforms moderate asymmetry (20/12/8)
+
+# Metal GPU Sparse Forward
+
+Implemented sparse forward pass on Metal GPU for the tiered architecture:
+
+- Neurons with >12 bits use sorted array + binary search on GPU
+- Neurons with <=12 bits use dense lookup on CPU
+- Hybrid CPU+GPU evaluation for heterogeneous architectures
+
+# RAMClusterBase ABC
+
+Refactored the cluster layer hierarchy with a proper abstract base class (`RAMClusterBase`), enabling both tiered and future architectures to share the same interface for GA/TS optimization.
+
+# Gating API
+
+Extended the gating system with RESTful API endpoints:
+
+- Trigger gating training via API call
+- Real-time gating progress via WebSocket
+- Per-tier gate activation statistics
+
+# Hybrid RAM+Transformer
+
+Started exploring hybrid architectures (workstreams WS0-WS3) that combine RAM neurons for fast pattern caching with lightweight transformer layers for long-range dependencies. Early exploration, not yet yielding results.
+
+# Next
+
+The tiered architecture is hitting diminishing returns. The gating experiments suggest the problem is too many clusters (50K+). Time to try a radically different approach: bitwise output.

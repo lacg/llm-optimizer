@@ -1,0 +1,60 @@
+---
+title: "Week 5 -- Tiered Architecture and Asymmetric Discovery"
+author: "Luiz Garcia"
+date: 2026-01-05
+abstract: |
+  Discovered that asymmetric bit allocation across frequency tiers dramatically
+  improves language model performance. Built overnight sweep infrastructure.
+doi: "10.5281/zenodo.17584973"
+license: "CC-BY-NC-SA-4.0"
+format: html
+---
+
+# Summary
+
+The central discovery this week: **not all tokens deserve the same architecture**. Frequent tokens (which have abundant training data) benefit from more bits per neuron, while rare tokens (sparse data) need fewer bits to avoid empty memory cells.
+
+# Tiered Sparse Memory
+
+Implemented a tiered architecture where the vocabulary is split into frequency-based tiers, each with its own neuron count and bit width:
+
+```
+Tier 0: 100 most frequent tokens  (46% of data)  → 15 neurons, 20 bits
+Tier 1: 400 medium tokens         (13% of data)  → 10 neurons, 12 bits
+Tier 2: 50K+ rare tokens          (40% of data)  →  5 neurons,  8 bits
+```
+
+# The Asymmetric Insight
+
+| Configuration | Test PPL |
+|---|---|
+| Asymmetric (20/12/8 bits) | **36,853** |
+| Uniform (20/20/20 bits) | 49,675 |
+
+The asymmetric config achieves **35% better perplexity**. The reason is training data density per address space:
+
+- Tier 0 tokens have ~11,000 examples each → can fill 2^20 addresses
+- Tier 2 tokens have ~20 examples each → 2^20 addresses are mostly EMPTY
+
+When a neuron encounters an EMPTY address, it returns 0.5 (maximum entropy) --- pure noise. Fewer bits = smaller address space = more cells actually trained.
+
+# Overnight Sweep Infrastructure
+
+Built tooling for systematic architecture exploration:
+
+- Per-tier metrics (accuracy broken down by tier)
+- Skip-completed experiments (resume interrupted sweeps)
+- Validation PPL on held-out data
+- JSON output for downstream analysis
+
+# Per-Cluster Optimization
+
+Moved from global GA/TS (same config for all clusters) to per-cluster optimization. Each of the 50K+ clusters can independently have different neuron counts and bit widths. This created a much larger search space but allowed fine-grained adaptation.
+
+# Hybrid CPU+GPU Evaluation
+
+Extended the Rust accelerator with a hybrid mode that splits work between CPU (rayon, 16 cores) and GPU (Metal, 40 cores) simultaneously, providing ~2x additional speedup.
+
+# Next
+
+The tier configuration space is large. Need a more structured search approach --- which leads to the phased coarse-to-fine search developed next week.
