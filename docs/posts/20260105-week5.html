@@ -220,6 +220,62 @@ Tier 2: 50K+ rare tokens          (40% of data)  →  5 neurons,  8 bits</code><
 <h1>Hybrid CPU+GPU Evaluation</h1>
 <p>Extended the Rust accelerator with a hybrid mode that splits work between CPU (rayon, 16 cores) and GPU (Metal, 40 cores) simultaneously, providing ~2x additional speedup.</p>
 </section>
+<section id="best-tiered-results" class="level1">
+<h1>Best Tiered Results</h1>
+<p>The best tiered configuration was discovered during the overnight sweep (see <a href="../posts/20260202-week9.html">Week 9</a>):</p>
+<p><strong>5-tier with EMPTY=0.0:</strong></p>
+<pre><code>Config: 50,15,20;50,13,18;400,9,10;20000,7,9;rest,5,8</code></pre>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Tier</th>
+<th>Tokens</th>
+<th>Neurons</th>
+<th>Bits</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>50 most frequent</td>
+<td>15</td>
+<td>20</td>
+<td>~30% of data</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>Next 50</td>
+<td>13</td>
+<td>18</td>
+<td>~8% of data</td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td>Next 400</td>
+<td>9</td>
+<td>10</td>
+<td>~13% of data</td>
+</tr>
+<tr class="even">
+<td>3</td>
+<td>Next 20,000</td>
+<td>7</td>
+<td>9</td>
+<td>~30% of data</td>
+</tr>
+<tr class="odd">
+<td>4</td>
+<td>Remaining ~30K</td>
+<td>5</td>
+<td>8</td>
+<td>~19% of data</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key insight</strong>: EMPTY=0.0 (abstaining from vote) beats EMPTY=0.5 (maximum entropy) by <strong>26%</strong> in CE. When a neuron encounters an untrained address, returning 0.0 effectively says “I have no opinion” — this lets other neurons dominate the prediction rather than adding noise.</p>
+<p><strong>Final metrics</strong>: CE ~10.20, PPL ~26,986, Acc ~4.86%</p>
+</section>
 <section id="next" class="level1">
 <h1>Next</h1>
 <p>The tier configuration space is large. Need a more structured search approach — which leads to the phased coarse-to-fine search developed next week.</p>

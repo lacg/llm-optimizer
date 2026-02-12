@@ -92,6 +92,31 @@ Major cleanup of the optimization infrastructure:
 - Pluggable hooks for monitoring and intervention
 - Unified `optimize()` loops
 
+# Optimization Progression {#optimization-progression}
+
+The bitwise architecture was optimized through a multi-phase pipeline, starting from grid search and refining with metaheuristics.
+
+**Phase 1 --- Grid search** (top 5 configurations):
+
+| Neurons | Bits | Memory Mode | CE | PPL | Acc |
+|---|---|---|---|---|---|
+| 7 | 14 | QUAD_WEIGHTED | 9.14 | 9,344 | 6.42% |
+| 7 | 13 | QUAD_WEIGHTED | 9.16 | 9,541 | 6.38% |
+| 8 | 14 | QUAD_WEIGHTED | 9.18 | 9,709 | 6.31% |
+| 7 | 15 | QUAD_WEIGHTED | 9.19 | 9,834 | 6.28% |
+| 6 | 14 | QUAD_WEIGHTED | 9.21 | 9,987 | 6.19% |
+
+**Phase progression**:
+
+| Phase | Method | Target | CE | PPL |
+|---|---|---|---|---|
+| 1 | Grid search | neurons × bits | 9.14 | 9,344 |
+| 2 | GA neurons | bits fixed at 14 | 9.13 | 9,270 |
+| 3 | TS connections | architecture fixed | 9.12 | 9,150 |
+| 4 | GA bits | neurons fixed | 9.11 | ~9,033 |
+
+Each phase narrows the search space: grid search finds the landscape, GA explores globally, TS refines locally.
+
 # Results
 
 The bitwise architecture with QUAD_WEIGHTED memory is currently the best performer:
