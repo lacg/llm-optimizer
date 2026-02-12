@@ -67,6 +67,43 @@ This made overnight optimization runs feasible.
 - Sparse memory backend for high-bit neurons
 - Overfitting detection in evaluation
 
+# Evaluation Metrics {#evaluation-metrics}
+
+The standard metrics for language model evaluation, used throughout this research:
+
+- **Cross-Entropy (CE)**: $CE = -\frac{1}{N}\sum_{i=1}^{N} \log P(\text{token}_i \mid \text{context}_i)$ --- measures average surprise per token in nats. Lower = better predictions. This is the fundamental objective: a model that assigns higher probability to the correct next token achieves lower CE.
+
+- **Perplexity (PPL)**: $PPL = e^{CE}$ --- the exponential of CE. Intuitively, the "effective vocabulary size" the model is uncertain over. A PPL of 100 means the model is as confused as if choosing uniformly among 100 tokens. PPL is the standard reporting metric in language modeling.
+
+- **Accuracy (Acc)**: Top-1 next-token accuracy = fraction where $\arg\max_t P(t \mid \text{context}) = \text{target}$. Note: accuracy is a coarser metric than CE/PPL --- a model can have good CE (well-calibrated probabilities) with low accuracy (the correct token isn't the top prediction but still gets reasonable probability).
+
+These metrics derive from information theory [@shannon1948mathematical]. Perplexity was introduced as a language model evaluation metric by Jelinek & Mercer (1980).
+
+# GPT-2 Baselines {#gpt-2-baselines}
+
+GPT-2 [@radford2019language] is our target benchmark --- a family of transformer language models from OpenAI, evaluated zero-shot on WikiText-2 with the GPT-2 BPE tokenizer (50,257 vocab).
+
+| Model | Params | PPL | CE (ln PPL) |
+|---|---|---|---|
+| GPT-2 Small | 124M | 29.41 | 3.38 |
+| GPT-2 Medium | 355M | 22.76 | 3.12 |
+| GPT-2 Large | 774M | 19.93 | 2.99 |
+| GPT-2 XL | 1.5B | 18.34 | 2.91 |
+
+These are zero-shot results --- the model was NOT trained on WikiText-2. Accuracy is not reported in the original paper; PPL is the standard metric. These numbers represent the "goal" for our WNN architecture.
+
+# Random Baseline {#random-baseline}
+
+A model that assigns uniform probability to all tokens: $P(t) = \frac{1}{|V|}$ where $|V| = 50{,}257$.
+
+Derived from first principles:
+
+- $CE = -\frac{1}{N}\sum \log P(t_i) = -\log\frac{1}{|V|} = \ln(50{,}257) \approx 10.82$
+- $PPL = e^{CE} = |V| = 50{,}257$
+- $Acc = \frac{1}{|V|} \approx 0.002\%$
+
+This is the worst case for a non-degenerate model --- it has learned nothing about the language and assigns equal probability to every token. Any model that captures even basic patterns (e.g., common words are more likely) should beat this. In information theory, this corresponds to maximum entropy over the vocabulary [@shannon1948mathematical].
+
 # Next
 
 With the infrastructure in place, the focus shifts to architecture search --- finding the right neuron counts, bit widths, and connectivity patterns for language modeling.

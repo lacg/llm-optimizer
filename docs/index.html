@@ -22,7 +22,27 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -157,49 +177,91 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="current-focus">Current Focus</h2>
 <p>Building a complete RAM-based language model pipeline:</p>
 <ul>
-<li><strong>BitwiseRAMLM</strong>: 16-cluster per-bit output architecture with log-product token reconstruction</li>
-<li><strong>Connectivity optimization</strong>: Genetic Algorithm + Tabu Search over neuron connectivity patterns</li>
-<li><strong>Rust+Metal acceleration</strong>: Full pipeline on Apple Silicon (16 CPU + 40 GPU cores)</li>
-<li><strong>Gating mechanisms</strong>: Content-based filtering inspired by DeepSeek’s Engram architecture</li>
+<li><strong><a href="./posts/20260209-week10.html#bitwiseramlm">BitwiseRAMLM</a></strong>: 16-cluster per-bit output architecture with log-product token reconstruction</li>
+<li><strong><a href="./posts/20260112-week6.html#phased-search-pipeline">Connectivity optimization</a></strong>: Genetic Algorithm + Tabu Search over neuron connectivity patterns</li>
+<li><strong><a href="./posts/20251229-week4.html#rustmetal-accelerator">Rust+Metal acceleration</a></strong>: Full pipeline on Apple Silicon (16 CPU + 40 GPU cores)</li>
+<li><strong><a href="./posts/20260209-week10.html#plug-and-play-gating">Gating mechanisms</a></strong>: Content-based filtering inspired by DeepSeek’s Engram architecture</li>
 </ul>
 </section>
 <section id="key-results" class="level2">
 <h2 class="anchored" data-anchor-id="key-results">Key Results</h2>
+<p><em>All models evaluated on WikiText-2 with GPT-2 tokenizer (50,257 vocab). CE = <a href="./posts/20251229-week4.html#evaluation-metrics">Cross-Entropy</a>, PPL = <a href="./posts/20251229-week4.html#evaluation-metrics">Perplexity</a>, Acc = <a href="./posts/20251229-week4.html#evaluation-metrics">top-1 accuracy</a>.</em></p>
 <table class="caption-top table">
-<colgroup>
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-</colgroup>
 <thead>
 <tr class="header">
 <th>Architecture</th>
-<th>Best CE</th>
-<th>Best PPL</th>
-<th>Best Acc</th>
-<th>Notes</th>
+<th>CE</th>
+<th>PPL</th>
+<th>Acc</th>
+<th>Details</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Tiered (50K clusters)</td>
-<td>~10.3</td>
-<td>~30,000</td>
-<td>~5.3%</td>
-<td>Asymmetric bit allocation</td>
+<td><a href="./posts/20251229-week4.html#random-baseline">Random baseline</a></td>
+<td>10.82</td>
+<td>50,257</td>
+<td>0.002%</td>
+<td>Uniform prediction (<a href="./posts/20251229-week4.html#random-baseline">methodology</a>)</td>
 </tr>
 <tr class="even">
-<td>Bitwise (16 clusters)</td>
+<td><a href="./posts/20260105-week5.html#best-tiered-results">Tiered RAMLM</a> (50K clusters)</td>
+<td>~10.20</td>
+<td>~27,000</td>
+<td>~4.9%</td>
+<td>5-tier, EMPTY=0.0 (<a href="./posts/20260105-week5.html#best-tiered-results">results</a>)</td>
+</tr>
+<tr class="odd">
+<td><a href="./posts/20260209-week10.html#optimization-progression">BitwiseRAMLM</a> (16 clusters)</td>
 <td>~9.11</td>
 <td>~9,000</td>
 <td>~6.4%</td>
-<td>Per-bit prediction + reconstruction</td>
+<td>Per-bit prediction (<a href="./posts/20260209-week10.html#optimization-progression">results</a>)</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Target: <a href="./posts/20251229-week4.html#gpt-2-baselines">GPT-2</a></strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td><span class="citation" data-cites="radford2019language">(<a href="#ref-radford2019language" role="doc-biblioref">Radford et al. 2019</a>)</span></td>
+</tr>
+<tr class="even">
+<td>GPT-2 Small (124M)</td>
+<td>3.38</td>
+<td>29.41</td>
+<td>–</td>
+<td>Zero-shot</td>
+</tr>
+<tr class="odd">
+<td>GPT-2 Medium (355M)</td>
+<td>3.12</td>
+<td>22.76</td>
+<td>–</td>
+<td>Zero-shot</td>
+</tr>
+<tr class="even">
+<td>GPT-2 Large (774M)</td>
+<td>2.99</td>
+<td>19.93</td>
+<td>–</td>
+<td>Zero-shot</td>
+</tr>
+<tr class="odd">
+<td>GPT-2 XL (1.5B)</td>
+<td>2.91</td>
+<td>18.34</td>
+<td>–</td>
+<td>Zero-shot</td>
 </tr>
 </tbody>
 </table>
-<p><em>Evaluated on WikiText-2 with GPT-2 tokenizer (50,257 vocab). For reference, GPT-2 small (124M params) achieves ~3.4 CE / ~29 PPL.</em></p>
 </section>
 <section id="weekly-updates" class="level2">
 <h2 class="anchored" data-anchor-id="weekly-updates">Weekly Updates</h2>
@@ -210,10 +272,15 @@ ul.task-list li input[type="checkbox"] {
 <p>All code is at <a href="https://github.com/lacg/wnn">github.com/lacg/wnn</a>.</p>
 
 
+
 </section>
 </section>
 
-<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div><a rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a></div></div></section></div></main> <!-- /main -->
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-radford2019language" class="csl-entry" role="listitem">
+Radford, Alec, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei, and Ilya Sutskever. 2019. <span>“Language Models Are Unsupervised Multitask Learners.”</span> OpenAI. <a href="https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf">https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf</a>.
+</div>
+</div></section><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div><a rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a></div></div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     const icon = "";

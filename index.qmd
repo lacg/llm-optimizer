@@ -10,19 +10,29 @@ This research explores whether **Weightless Neural Networks** (WNNs) --- specifi
 
 Building a complete RAM-based language model pipeline:
 
-- **BitwiseRAMLM**: 16-cluster per-bit output architecture with log-product token reconstruction
-- **Connectivity optimization**: Genetic Algorithm + Tabu Search over neuron connectivity patterns
-- **Rust+Metal acceleration**: Full pipeline on Apple Silicon (16 CPU + 40 GPU cores)
-- **Gating mechanisms**: Content-based filtering inspired by DeepSeek's Engram architecture
+- **[BitwiseRAMLM](posts/20260209-week10.qmd#bitwiseramlm)**: 16-cluster per-bit output architecture with log-product token reconstruction
+- **[Connectivity optimization](posts/20260112-week6.qmd#phased-search-pipeline)**: Genetic Algorithm + Tabu Search over neuron connectivity patterns
+- **[Rust+Metal acceleration](posts/20251229-week4.qmd#rustmetal-accelerator)**: Full pipeline on Apple Silicon (16 CPU + 40 GPU cores)
+- **[Gating mechanisms](posts/20260209-week10.qmd#plug-and-play-gating)**: Content-based filtering inspired by DeepSeek's Engram architecture
 
 ## Key Results
 
-| Architecture | Best CE | Best PPL | Best Acc | Notes |
-|---|---|---|---|---|
-| Tiered (50K clusters) | ~10.3 | ~30,000 | ~5.3% | Asymmetric bit allocation |
-| Bitwise (16 clusters) | ~9.11 | ~9,000 | ~6.4% | Per-bit prediction + reconstruction |
+*All models evaluated on WikiText-2 with GPT-2 tokenizer (50,257 vocab).
+CE = [Cross-Entropy](posts/20251229-week4.qmd#evaluation-metrics),
+PPL = [Perplexity](posts/20251229-week4.qmd#evaluation-metrics),
+Acc = [top-1 accuracy](posts/20251229-week4.qmd#evaluation-metrics).*
 
-*Evaluated on WikiText-2 with GPT-2 tokenizer (50,257 vocab). For reference, GPT-2 small (124M params) achieves ~3.4 CE / ~29 PPL.*
+| Architecture | CE | PPL | Acc | Details |
+|---|---|---|---|---|
+| [Random baseline](posts/20251229-week4.qmd#random-baseline) | 10.82 | 50,257 | 0.002% | Uniform prediction ([methodology](posts/20251229-week4.qmd#random-baseline)) |
+| [Tiered RAMLM](posts/20260105-week5.qmd#best-tiered-results) (50K clusters) | ~10.20 | ~27,000 | ~4.9% | 5-tier, EMPTY=0.0 ([results](posts/20260105-week5.qmd#best-tiered-results)) |
+| [BitwiseRAMLM](posts/20260209-week10.qmd#optimization-progression) (16 clusters) | ~9.11 | ~9,000 | ~6.4% | Per-bit prediction ([results](posts/20260209-week10.qmd#optimization-progression)) |
+| | | | | |
+| **Target: [GPT-2](posts/20251229-week4.qmd#gpt-2-baselines)** | | | | [@radford2019language] |
+| GPT-2 Small (124M) | 3.38 | 29.41 | -- | Zero-shot |
+| GPT-2 Medium (355M) | 3.12 | 22.76 | -- | Zero-shot |
+| GPT-2 Large (774M) | 2.99 | 19.93 | -- | Zero-shot |
+| GPT-2 XL (1.5B) | 2.91 | 18.34 | -- | Zero-shot |
 
 ## Weekly Updates
 

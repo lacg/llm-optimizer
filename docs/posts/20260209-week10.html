@@ -304,6 +304,108 @@ window.Quarto = {
 <li>Unified <code>optimize()</code> loops</li>
 </ul>
 </section>
+<section id="optimization-progression" class="level1">
+<h1>Optimization Progression</h1>
+<p>The bitwise architecture was optimized through a multi-phase pipeline, starting from grid search and refining with metaheuristics.</p>
+<p><strong>Phase 1 — Grid search</strong> (top 5 configurations):</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Neurons</th>
+<th>Bits</th>
+<th>Memory Mode</th>
+<th>CE</th>
+<th>PPL</th>
+<th>Acc</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>7</td>
+<td>14</td>
+<td>QUAD_WEIGHTED</td>
+<td>9.14</td>
+<td>9,344</td>
+<td>6.42%</td>
+</tr>
+<tr class="even">
+<td>7</td>
+<td>13</td>
+<td>QUAD_WEIGHTED</td>
+<td>9.16</td>
+<td>9,541</td>
+<td>6.38%</td>
+</tr>
+<tr class="odd">
+<td>8</td>
+<td>14</td>
+<td>QUAD_WEIGHTED</td>
+<td>9.18</td>
+<td>9,709</td>
+<td>6.31%</td>
+</tr>
+<tr class="even">
+<td>7</td>
+<td>15</td>
+<td>QUAD_WEIGHTED</td>
+<td>9.19</td>
+<td>9,834</td>
+<td>6.28%</td>
+</tr>
+<tr class="odd">
+<td>6</td>
+<td>14</td>
+<td>QUAD_WEIGHTED</td>
+<td>9.21</td>
+<td>9,987</td>
+<td>6.19%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Phase progression</strong>:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Phase</th>
+<th>Method</th>
+<th>Target</th>
+<th>CE</th>
+<th>PPL</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>Grid search</td>
+<td>neurons × bits</td>
+<td>9.14</td>
+<td>9,344</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>GA neurons</td>
+<td>bits fixed at 14</td>
+<td>9.13</td>
+<td>9,270</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>TS connections</td>
+<td>architecture fixed</td>
+<td>9.12</td>
+<td>9,150</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>GA bits</td>
+<td>neurons fixed</td>
+<td>9.11</td>
+<td>~9,033</td>
+</tr>
+</tbody>
+</table>
+<p>Each phase narrows the search space: grid search finds the landscape, GA explores globally, TS refines locally.</p>
+</section>
 <section id="results" class="level1">
 <h1>Results</h1>
 <p>The bitwise architecture with QUAD_WEIGHTED memory is currently the best performer:</p>

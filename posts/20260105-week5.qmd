@@ -55,6 +55,28 @@ Moved from global GA/TS (same config for all clusters) to per-cluster optimizati
 
 Extended the Rust accelerator with a hybrid mode that splits work between CPU (rayon, 16 cores) and GPU (Metal, 40 cores) simultaneously, providing ~2x additional speedup.
 
+# Best Tiered Results {#best-tiered-results}
+
+The best tiered configuration was discovered during the overnight sweep (see [Week 9](20260202-week9.qmd)):
+
+**5-tier with EMPTY=0.0:**
+
+```
+Config: 50,15,20;50,13,18;400,9,10;20000,7,9;rest,5,8
+```
+
+| Tier | Tokens | Neurons | Bits | Coverage |
+|---|---|---|---|---|
+| 0 | 50 most frequent | 15 | 20 | ~30% of data |
+| 1 | Next 50 | 13 | 18 | ~8% of data |
+| 2 | Next 400 | 9 | 10 | ~13% of data |
+| 3 | Next 20,000 | 7 | 9 | ~30% of data |
+| 4 | Remaining ~30K | 5 | 8 | ~19% of data |
+
+**Key insight**: EMPTY=0.0 (abstaining from vote) beats EMPTY=0.5 (maximum entropy) by **26%** in CE. When a neuron encounters an untrained address, returning 0.0 effectively says "I have no opinion" --- this lets other neurons dominate the prediction rather than adding noise.
+
+**Final metrics**: CE ~10.20, PPL ~26,986, Acc ~4.86%
+
 # Next
 
 The tier configuration space is large. Need a more structured search approach --- which leads to the phased coarse-to-fine search developed next week.
