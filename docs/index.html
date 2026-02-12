@@ -178,9 +178,9 @@ div.csl-indent {
 <p>Building a complete RAM-based language model pipeline:</p>
 <ul>
 <li><strong><a href="./posts/20260209-week10.html#bitwiseramlm">BitwiseRAMLM</a></strong>: 16-cluster per-bit output architecture with log-product token reconstruction</li>
-<li><strong><a href="./posts/20260112-week6.html#phased-search-pipeline">Connectivity optimization</a></strong>: Genetic Algorithm + Tabu Search over neuron connectivity patterns</li>
+<li><strong><a href="./posts/20260112-week6.html#phased-search-pipeline">Connectivity optimization</a></strong>: <a href="./posts/20260112-week6.html#phased-search-pipeline">Genetic Algorithm</a> <span class="citation" data-cites="holland1975adaptation goldberg1989genetic">(<a href="#ref-holland1975adaptation" role="doc-biblioref">Holland 1975</a>; <a href="#ref-goldberg1989genetic" role="doc-biblioref">Goldberg 1989</a>)</span> + <a href="./posts/20260112-week6.html#phased-search-pipeline">Tabu Search</a> <span class="citation" data-cites="glover1989tabu1 glover1990tabu2">(<a href="#ref-glover1989tabu1" role="doc-biblioref">Glover 1989</a>, <a href="#ref-glover1990tabu2" role="doc-biblioref">1990</a>)</span> over neuron connectivity patterns</li>
 <li><strong><a href="./posts/20251229-week4.html#rustmetal-accelerator">Rust+Metal acceleration</a></strong>: Full pipeline on Apple Silicon (16 CPU + 40 GPU cores)</li>
-<li><strong><a href="./posts/20260209-week10.html#plug-and-play-gating">Gating mechanisms</a></strong>: Content-based filtering inspired by DeepSeek’s Engram architecture</li>
+<li><strong><a href="./posts/20260209-week10.html#plug-and-play-gating">Gating mechanisms</a></strong>: Content-based filtering inspired by DeepSeek’s Engram <span class="citation" data-cites="deepseek2026engram">(<a href="#ref-deepseek2026engram" role="doc-biblioref">DeepSeek-AI and Wenfeng 2026</a>)</span> architecture</li>
 </ul>
 </section>
 <section id="key-results" class="level2">
@@ -277,6 +277,21 @@ div.csl-indent {
 </section>
 
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-deepseek2026engram" class="csl-entry" role="listitem">
+DeepSeek-AI, and Liang Wenfeng. 2026. <span>“Conditional Memory via Scalable Lookup: A New Axis of Sparsity for Large Language Models.”</span> <a href="https://arxiv.org/abs/2601.07372">https://arxiv.org/abs/2601.07372</a>.
+</div>
+<div id="ref-glover1989tabu1" class="csl-entry" role="listitem">
+Glover, F. 1989. <span>“Tabu Search – Part i.”</span> <em>ORSA Journal on Computing</em> 1 (3): 190–206. <a href="https://doi.org/10.1287/ijoc.1.1.1">https://doi.org/10.1287/ijoc.1.1.1</a>.
+</div>
+<div id="ref-glover1990tabu2" class="csl-entry" role="listitem">
+———. 1990. <span>“Tabu Search – Part II.”</span> <em>ORSA Journal on Computing</em> 2 (1): 4–32. <a href="https://doi.org/10.1287/ijoc.2.1.4">https://doi.org/10.1287/ijoc.2.1.4</a>.
+</div>
+<div id="ref-goldberg1989genetic" class="csl-entry" role="listitem">
+Goldberg, David E. 1989. <em>Genetic Algorithms in Search, Optimization, and Machine Learning</em>. Addison-Wesley. <a href="https://archive.org/details/geneticalgorithm0000gold">https://archive.org/details/geneticalgorithm0000gold</a>.
+</div>
+<div id="ref-holland1975adaptation" class="csl-entry" role="listitem">
+Holland, John H. 1975. <em>Adaptation in Natural and Artificial Systems</em>. University of Michigan Press. <a href="https://archive.org/details/adaptationinnatu0000holl">https://archive.org/details/adaptationinnatu0000holl</a>.
+</div>
 <div id="ref-radford2019language" class="csl-entry" role="listitem">
 Radford, Alec, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei, and Ilya Sutskever. 2019. <span>“Language Models Are Unsupervised Multitask Learners.”</span> OpenAI. <a href="https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf">https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf</a>.
 </div>
