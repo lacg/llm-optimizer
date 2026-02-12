@@ -20,7 +20,7 @@ Building a complete RAM-based language model pipeline:
 | Architecture | Best CE | Best PPL | Best Acc | Notes |
 |---|---|---|---|---|
 | Tiered (50K clusters) | ~10.3 | ~30,000 | ~5.3% | Asymmetric bit allocation |
-| Bitwise (16 clusters) | ~10.1 | ~24,000 | ~5.8% | Per-bit prediction + reconstruction |
+| Bitwise (16 clusters) | ~9.11 | ~9,000 | ~6.4% | Per-bit prediction + reconstruction |
 
 *Evaluated on WikiText-2 with GPT-2 tokenizer (50,257 vocab). For reference, GPT-2 small (124M params) achieves ~3.4 CE / ~29 PPL.*
 
