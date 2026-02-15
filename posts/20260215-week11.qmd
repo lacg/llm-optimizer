@@ -24,16 +24,21 @@ Hinton and Nowlan [-@hinton1987learning] provided the first computational demons
 
 This principle maps directly to our architecture search: GA/TS evolves the connectivity genome, and developmental adaptation (synaptogenesis + neurogenesis) is the "learning" that happens during each genome's evaluation. Evolution selects for architectures whose connectivity patterns respond well to adaptation --- the Baldwin effect.
 
-## Baldwinian vs. Lamarckian
+## Baldwinian vs. Lamarckian Variants
 
-Two strategies exist for combining evolution with lifetime learning [@nolfi1999learning]:
+Both variants below implement the Baldwin effect --- the difference is only in how the adapted result propagates [@nolfi1999learning]:
 
-- **Baldwinian**: Learning improves fitness during evaluation, but learned changes are NOT written back to the genome. Evolution sees adapted fitness, but offspring start from the unadapted genome.
-- **Lamarckian**: Learned changes ARE written back to the genome. Offspring inherit the adapted architecture directly.
+| | **Baldwinian variant** | **Lamarckian variant** |
+|---|---|---|
+| Adaptation during eval? | Yes | Yes |
+| Evolution sees adapted fitness? | Yes | Yes |
+| Offspring inherit adapted genome? | **No** --- children start from the *original* genome, re-discovering adaptations each generation | **Yes** --- children start from the *adapted* genome |
+| Genetic diversity | Higher (adaptations must be rediscovered) | Lower (adaptations accumulate) |
+| Convergence speed | Slower (2--10x more generations) | Faster |
 
-Our implementation is **Lamarckian** --- adapted genomes replace the originals in the population. Nolfi and Floreano [-@nolfi1999learning] showed that Lamarckian approaches converge faster (2x--10x fewer generations), while Baldwinian approaches maintain more diversity. For our expensive-to-evaluate RAM architectures, faster convergence is critical.
+Our implementation uses the **Lamarckian variant** of the Baldwin effect --- adapted genomes replace the originals in the population. Nolfi and Floreano [-@nolfi1999learning] showed that Lamarckian approaches converge faster (2x--10x fewer generations), while the Baldwinian variant maintains more diversity. For our expensive-to-evaluate RAM architectures (~10ms per genome on Rust+Metal), the Lamarckian variant's faster convergence is critical: re-discovering adaptations each generation as the Baldwinian variant requires would be prohibitively expensive.
 
-The gains from embedding learning in evaluation are well-documented [@soltoggio2018born; @turney1996evolution]: **2x--10x faster convergence**, **10--50% higher final fitness** on static tasks, and the ability to solve problems that **pure evolution cannot address**.
+The gains from embedding adaptation in evaluation (regardless of variant) are well-documented [@soltoggio2018born; @turney1996evolution]: **2x--10x faster convergence**, **10--50% higher final fitness** on static tasks, and the ability to solve problems that **pure evolution cannot address**.
 
 # Biological Analogies
 
