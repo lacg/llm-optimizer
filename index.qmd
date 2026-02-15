@@ -14,6 +14,7 @@ Building a complete RAM-based language model pipeline:
 - **[Connectivity optimization](posts/20260112-week6.qmd#phased-search-pipeline)**: [Genetic Algorithm](posts/20260112-week6.qmd#phased-search-pipeline) [@holland1975adaptation; @goldberg1989genetic] + [Tabu Search](posts/20260112-week6.qmd#phased-search-pipeline) [@glover1989tabu1; @glover1990tabu2] over neuron connectivity patterns
 - **[Rust+Metal acceleration](posts/20251229-week4.qmd#rustmetal-accelerator)**: Full pipeline on Apple Silicon (16 CPU + 40 GPU cores)
 - **[Gating mechanisms](posts/20260209-week10.qmd#plug-and-play-gating)**: Content-based filtering inspired by DeepSeek's Engram [@deepseek2026engram] architecture
+- **[Baldwin effect](posts/20260215-week11.qmd)**: Developmental adaptation (synaptogenesis, neurogenesis, apoptosis) embedded in the evolutionary evaluation loop [@baldwin1896new; @hinton1987learning]
 
 ## Key Results
 

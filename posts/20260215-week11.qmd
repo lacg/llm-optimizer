@@ -1,0 +1,143 @@
+---
+title: "Week 11 -- Baldwin Effect: Developmental Plasticity for Architecture Search"
+author: "Luiz Garcia"
+date: 2026-02-15
+abstract: |
+  Embedded developmental adaptation --- synaptogenesis, neurogenesis, and apoptosis ---
+  directly inside the GA/TS evaluation loop, implementing the Baldwin effect for
+  RAM-based language models. Evolution now selects for architectures with high
+  developmental plasticity, not just static fitness.
+doi: ""
+license: "CC-BY-NC-SA-4.0"
+format: html
+---
+
+# Summary
+
+Previously, architecture adaptation (synaptogenesis and neurogenesis) ran as a **post-hoc Phase 9** applied only to the best genome *after* GA/TS finished. This misses the point of developmental plasticity: if evolution doesn't *see* the adapted fitness, it can't select for architectures that *respond well* to adaptation. This week we embedded adaptation inside every genome evaluation, implementing the Baldwin effect [@baldwin1896new].
+
+# The Baldwin Effect
+
+In 1896, James Mark Baldwin proposed that organisms capable of learning during their lifetime have a survival advantage, and that this learned adaptability can *indirectly guide genetic evolution* --- even without Lamarckian inheritance of acquired traits [@baldwin1896new]. The key insight: if a beneficial behavior can be learned, individuals with a genetic predisposition toward learning it survive longer, gradually shifting the population toward innately encoding what was previously learned.
+
+Hinton and Nowlan [-@hinton1987learning] provided the first computational demonstration. In their model, a genetic algorithm searched for a specific 20-bit configuration on a "needle-in-a-haystack" fitness landscape --- no partial credit, only the exact answer was fit. **Pure evolution failed** because there was no gradient information. But when individuals could *learn* (randomly search) during their lifetime, those with more correct fixed alleles were more likely to stumble on the answer, creating a smooth fitness gradient where none existed before. Learning converted an unsearchable landscape into a searchable one.
+
+This principle maps directly to our architecture search: GA/TS evolves the connectivity genome, and developmental adaptation (synaptogenesis + neurogenesis) is the "learning" that happens during each genome's evaluation. Evolution selects for architectures whose connectivity patterns respond well to adaptation --- the Baldwin effect.
+
+## Baldwinian vs. Lamarckian
+
+Two strategies exist for combining evolution with lifetime learning [@nolfi1999learning]:
+
+- **Baldwinian**: Learning improves fitness during evaluation, but learned changes are NOT written back to the genome. Evolution sees adapted fitness, but offspring start from the unadapted genome.
+- **Lamarckian**: Learned changes ARE written back to the genome. Offspring inherit the adapted architecture directly.
+
+Our implementation is **Lamarckian** --- adapted genomes replace the originals in the population. Nolfi and Floreano [-@nolfi1999learning] showed that Lamarckian approaches converge faster (2x--10x fewer generations), while Baldwinian approaches maintain more diversity. For our expensive-to-evaluate RAM architectures, faster convergence is critical.
+
+The gains from embedding learning in evaluation are well-documented [@soltoggio2018born; @turney1996evolution]: **2x--10x faster convergence**, **10--50% higher final fitness** on static tasks, and the ability to solve problems that **pure evolution cannot address**.
+
+# Biological Analogies
+
+Our adaptation mechanisms are named after biological processes in neural development [@huttenlocher1979synaptic; @eriksson1998neurogenesis]. The table below maps biological mechanisms to their computational analogs in our system:
+
+| Biological Process | Our Analog | What It Does |
+|---|---|---|
+| **Synaptogenesis** | Connection adaptation | Grows new synapses (connections) for saturated neurons; prunes low-entropy synapses |
+| **Neurogenesis** | Neuron addition | Adds neurons to clusters with high error and low fill rate |
+| **Apoptosis** | Neuron removal | Removes redundant neurons whose outputs are too similar to others in the cluster |
+| **Synaptic pruning** | Entropy-based pruning | Prunes connections where the addressed memory cells show near-uniform (high-entropy) activation --- the synapse carries no useful information |
+
+## Synaptogenesis
+
+In neuroscience, synaptogenesis is the formation of new synapses between neurons, peaking during early development and continuing throughout life [@huttenlocher1979synaptic]. In our system, synaptogenesis operates at the neuron level:
+
+**Pruning** (synaptic elimination): For each neuron, compute the **entropy** of its memory cell activation pattern. If the entropy exceeds a threshold (cells are activated nearly uniformly), the connection is not discriminating --- it's wasted address space. The neuron's `bits_per_neuron` is decreased and the low-information connections are dropped. This is analogous to Optimal Brain Damage [@lecun1990optimal] and Optimal Brain Surgeon [@hassibi1993surgeon], which prune weights based on second-order information.
+
+**Growth** (synapse formation): For each neuron, compute the **fill rate** (fraction of memory cells that have been trained) and the **error rate** (fraction of trained cells predicting incorrectly). If the fill rate exceeds a threshold *and* the error rate is high, the neuron needs more address space to disambiguate examples that currently collide. The neuron's `bits_per_neuron` is increased and new random connections are added.
+
+## Neurogenesis
+
+Adult neurogenesis --- the birth of new neurons --- was long thought impossible, until Eriksson et al. [-@eriksson1998neurogenesis] demonstrated it in the human hippocampus. In our system:
+
+**Neuron addition**: For each cluster, compute the **cluster error rate** (average error across all neurons). If the error is high and the cluster has fewer than `max_neurons`, a new neuron is added by cloning an existing neuron's connections with perturbation.
+
+**Neuron removal (apoptosis)**: For each cluster, compute the **pairwise uniqueness** of neuron outputs. If two neurons produce nearly identical predictions (Jaccard similarity above threshold), one is removed --- it's redundant. This is analogous to programmed cell death in biological neural development.
+
+## Topology Evolution Context
+
+Our approach is related to --- but distinct from --- NEAT [@stanley2002neat], which evolves neural network topology through complexification. NEAT adds nodes and connections via mutation, but evaluates fixed topologies. Our system adds a *developmental* step: each genome's topology is adapted during evaluation, and evolution selects for topologies that benefit from development. The survey by Yao [-@yao1999evolving] covers the broader landscape of evolving neural network architectures.
+
+# Implementation
+
+## Architecture
+
+The Baldwin effect loop is embedded in the genome evaluation:
+
+```
+GA generates offspring (mutant genomes)
+  → evaluator.evaluate_batch(offspring)
+    → Rust: per-genome parallel loop:
+        1. train_into()        — train neuron memories
+        2. compute_*_stats()   — analyze neuron/cluster health
+        3. synaptogenesis()    — prune/grow connections
+        4. neurogenesis()      — add/remove neurons
+        5. train_into()        — retrain with adapted architecture
+        6. forward_eval_into() — GPU forward pass
+        7. Metal CE batch      — cross-entropy scoring
+    → Python: update genome in-place with adapted architecture
+  → GA inserts ADAPTED offspring with ADAPTED scores
+  → Evolution selects for architectures that develop well
+```
+
+The strategy layer (GA/TS) never sees adaptation --- it evaluates genomes and gets back scores. The genomes are silently adapted during evaluation. This separation keeps the optimization infrastructure clean.
+
+## Key Design Decisions
+
+**Split `train_and_forward_into`**: The monolithic 300-line function was split into `train_into` (mutable clusters) and `forward_eval_into` (immutable clusters). This enables the adapt-retrain loop: train → adapt → retrain → evaluate.
+
+**Flat score buffer invariance**: Every genome produces `num_eval × num_clusters` scores regardless of internal architecture changes during adaptation. The Metal CE batch kernel doesn't know or care about adaptation --- it just processes the flat score buffer. This preserves the GPU batching that gives us the 23x speedup.
+
+**Zero-contention parallel data**: Each genome's adapted data is stored in a `Mutex<Option<...>>` with one slot per genome. Since each thread writes to a unique index, the mutex never actually contends (~20ns lock vs ~10ms train+forward). This avoids the overhead of concurrent data structures while still being thread-safe.
+
+**Lamarckian update**: Adapted genomes replace originals in-place. The `_evaluate_batch_adaptive_rust()` method updates `genome.bits_per_neuron`, `genome.neurons_per_cluster`, and `genome.connections` directly, so the population evolves with adapted architectures.
+
+## Files Modified
+
+| File | Change |
+|---|---|
+| `bitwise_ramlm.rs` | Split `train_and_forward_into`; new `evaluate_genomes_adaptive` |
+| `lib.rs` | PyO3 wrapper for `evaluate_genomes_adaptive` |
+| `bitwise_evaluator.py` | Adaptive routing in `evaluate_batch`, `search_neighbors`, `search_offspring` |
+| `run_bitwise_optimization.py` | Removed Phase 9; pass `AdaptationConfig` at evaluator construction |
+| `architecture_strategies.py` | `set_generation()` hooks in GA/TS callbacks |
+
+## Activation
+
+The adaptive path activates when `--synaptogenesis` or `--neurogenesis` CLI flags are set:
+
+```bash
+python run_bitwise_optimization.py \
+  --synaptogenesis --neurogenesis \
+  --adapt-warmup 5 --adapt-cooldown 3 \
+  --adapt-min-bits 6 --adapt-max-bits 24
+```
+
+Without these flags, the existing non-adaptive Rust+Metal path runs unchanged.
+
+# Related Work on RAM Networks and Evolutionary Adaptation
+
+The intersection of weightless neural networks and evolutionary topology search is a relatively unexplored area. WiSARD [@aleksander1984wisard] and its descendants [@ludermir1999weightless] established the RAM-based neuron model, but these architectures use fixed connectivity (random or hand-designed mappings). The BTHOWeN system [@nag2024shrinkinggiantquasiweightless] uses thermometer encoding with fixed connectivity for efficient inference.
+
+To our knowledge, no prior work has applied the Baldwin effect --- embedding developmental adaptation inside evolutionary fitness evaluation --- to RAM-based neural networks. Our approach combines three relatively independent lines of research:
+
+1. **RAM neurons** [@aleksander1984wisard; @ludermir1999weightless] as the computational substrate
+2. **Evolutionary topology search** [@stanley2002neat; @yao1999evolving] for optimizing neuron connectivity
+3. **The Baldwin effect** [@baldwin1896new; @hinton1987learning] for coupling development with evolution
+
+The closest analog in weighted networks is the "Born to Learn" framework [@soltoggio2018born], where evolved plastic neural networks combine topology evolution with Hebbian learning rules. The differentiable WNN work [@bacellar2024differentiableweightlessneuralnetworks] offers a gradient-based alternative, but doesn't address evolutionary architecture search.
+
+# Next
+
+- Smoke-test the full adaptive pipeline with `--synaptogenesis --neurogenesis --adapt-warmup 0`
+- Compare Baldwin effect runs against non-adaptive baselines (same GA/TS budget)
+- Clean up old fallback methods (`train_adapt_eval`, `evaluate_with_adaptation`) once validated
+- Integrate adaptive evaluation into `run_coarse_fine_search.py`
