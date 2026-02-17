@@ -291,9 +291,143 @@ In connectivity optimization, each genome encodes *which input bits each neuron 
 
 Single-source TS finds one good basin and stays there. Cooperative multi-start maintains diversity across basins --- if source A has good tier 0 connections and source B has good tier 2 connections, both continue to be refined in parallel. The cache trimming by fitness rank ensures that only the best genomes from *all* basins survive, creating implicit competition between search trajectories.
 
+# Investigation: GPU-Accelerated Training via LSM-Tree Memory
+
+## The Training Bottleneck
+
+Currently, training is **CPU-only**. Each genome's training follows this path:
+
+```
+Python → Rust FFI → rayon par_iter over neurons → sequential example loop per neuron
+```
+
+The neuron-parallel path (`bitwise_train_neuron_parallel` in `ramlm.rs`) eliminates atomic contention --- each thread owns one neuron's memory exclusively. But training still iterates sequentially over all examples *within each neuron*, accumulating votes into a per-neuron buffer:
+
+```rust
+// Current: O(examples × neurons) sequential inner loop
+for ex_idx in 0..num_examples {
+    let addr = compute_address(input_bits, connections, bits_per_neuron);
+    votes[addr] += if target_bit == 1 { 1 } else { -1 };
+}
+```
+
+For 50 genomes × 3200 neurons × 16K training examples, that's ~2.5 billion address computations per generation. The GPU sits idle during all of this --- evaluation uses Metal, but training does not.
+
+## What Is an LSM-Tree?
+
+A **Log-Structured Merge-tree** [@oneil1996lsm] is a write-optimized data structure used in databases like LevelDB, RocksDB, and Cassandra. Instead of updating records in-place (which requires random I/O), it:
+
+1. **Buffers writes** in an in-memory sorted structure (the *memtable*)
+2. **Flushes** the buffer to an immutable sorted run when full
+3. **Merges** sorted runs in the background (*compaction*)
+4. **Reads** check the memtable first, then search sorted runs (using bloom filters to skip levels)
+
+The key trade-off: **LSM trades read latency for write throughput**. Writes are always sequential (append to buffer, then flush sorted), never random. This is exactly the pattern GPU hardware prefers --- coalesced sequential access, not scattered random writes.
+
+## The Analogy to RAM Training
+
+RAM neuron training is structurally identical to a write-heavy database workload:
+
+| Database concept | RAM training equivalent |
+|------------------|------------------------|
+| Record key | (neuron_id, address) |
+| Record value | Vote delta (+1 or -1) |
+| Write operation | One training example touching one neuron |
+| Compaction/merge | Majority vote → final cell value |
+| Read (after training) | Forward pass memory lookup |
+
+Current training does in-place updates: for each example, compute the address, immediately update the vote buffer. An LSM-inspired approach would instead **buffer all writes, sort them, then merge**.
+
+## Proposed Architecture: Sort-Reduce on GPU
+
+The insight is that vote accumulation is a **sort-reduce** operation --- exactly what GPUs excel at:
+
+```
+Phase 1: Generate (GPU)
+  For each (example, neuron) pair:
+    Compute address from packed input bits + connections
+    Emit tuple: (neuron_id, address, vote)
+  → Output: unsorted stream of ~50M tuples
+
+Phase 2: Sort (GPU)
+  Radix sort tuples by (neuron_id, address)
+  → Output: sorted stream, identical keys adjacent
+
+Phase 3: Reduce (GPU)
+  Parallel segmented reduction: sum votes per (neuron_id, address)
+  → Output: one (neuron_id, address, total_vote) per unique key
+
+Phase 4: Write (GPU or CPU)
+  For each reduced entry:
+    cell_value = QUAD_NUDGE(total_vote) or MAJORITY(total_vote)
+  → Output: trained neuron memory
+```
+
+### Why This Maps Well to Metal
+
+**Phase 1** is embarrassingly parallel: each thread handles one (example, neuron) pair, reads packed input bits (already in GPU memory from evaluation), computes the address via the same MSB-first encoding used in forward pass shaders, and emits a 12-byte tuple (u32 neuron_id, u32 address, i32 vote).
+
+**Phase 2** uses GPU radix sort. Metal Performance Shaders doesn't provide a built-in sort, but radix sort on GPU is a well-studied problem [@merrill2010revisiting]. For 32-bit keys, 4-pass radix sort achieves ~1 billion keys/second on modern GPUs. Our 50M tuples would sort in ~50ms.
+
+**Phase 3** is a segmented reduction --- scan the sorted array, sum consecutive entries with the same (neuron_id, address) key. This is a standard GPU primitive (parallel prefix scan with key-change detection).
+
+**Phase 4** writes the final cell values. For dense memory (bits ≤ 12), this writes directly to the bit-packed `i64` word array. For sparse memory (bits > 12), it produces sorted (key, value) arrays --- which are *already* in the format needed for GPU evaluation via `SparseGpuExport`.
+
+### Estimated Speedup
+
+| Component | Current (CPU) | Proposed (GPU) | Speedup |
+|-----------|--------------|----------------|---------|
+| Address computation | ~800ms (rayon, 16 cores) | ~5ms (40 GPU cores, SIMD) | 160x |
+| Vote accumulation | ~400ms (sequential per neuron) | ~50ms (radix sort + reduce) | 8x |
+| Memory write | ~100ms | ~10ms | 10x |
+| **Total per genome** | **~1.3s** | **~65ms** | **20x** |
+| **50 genomes** | **~15s** (parallel pool) | **~1s** (batched dispatch) | **15x** |
+
+These are rough estimates. The real bottleneck today is not pure training time but the fact that training serializes the pipeline: CPU trains one genome while the GPU waits for evaluation. With GPU training, the entire train→evaluate cycle could run on-device without CPU↔GPU data transfers for each genome.
+
+## Synergy with Existing Infrastructure
+
+The LSM-inspired approach builds on infrastructure that already exists:
+
+1. **Packed input bits** (`pack_bools_to_u64`): Already used by evaluation shaders. Training would read the same `ulong* packed_input` buffers.
+
+2. **Connection arrays**: Already flattened and transferred to GPU for evaluation. Training needs the same `int* connections` buffer.
+
+3. **Sparse export format**: The sort-reduce output is *already* a `SparseGpuExport` (sorted keys + values). No conversion step needed between training and evaluation.
+
+4. **Group coalescing**: The same neuron bucketing used for evaluation dispatch would organize training dispatch.
+
+5. **Buffer caching**: Thread-local buffer pools already minimize GPU allocation overhead.
+
+## What Makes This Different from Naive GPU Training
+
+A naive approach would try to port the current algorithm directly: one GPU thread per neuron, each iterating over all examples. This fails because:
+
+- **Memory divergence**: Each neuron has different connections, so address computations access different input bits → warp divergence kills GPU throughput
+- **Atomic contention**: Multiple examples writing to the same neuron's vote buffer → atomic operations serialize threads
+
+The LSM-inspired sort-reduce avoids both problems:
+
+- **Phase 1** has perfect coalescing: all threads in a warp read the same example's input bits (same memory addresses), just compute different neuron addresses
+- **Phase 3** has no atomics: the sort guarantees identical keys are adjacent, so reduction is a simple sequential scan within each segment
+
+## Open Questions
+
+1. **Memory budget**: 50M tuples × 12 bytes = 600MB. With 50 genomes batched, that's 30GB --- feasible on 64GB unified memory but tight. Could process in genome batches of 10-15.
+
+2. **Sparse neurons (bits > 12)**: Address space is 2^20+ but only ~16K examples. The sort-reduce output is tiny (~16K entries per neuron). The overhead is in Phase 1 (generating tuples) not Phase 3 (reducing them).
+
+3. **QUAD_WEIGHTED mode**: Nudging requires reading the *current* cell value before writing. This creates a read-modify-write dependency that complicates pure sort-reduce. Could use a two-pass approach: first pass reads current values, second pass applies nudges.
+
+4. **Incremental training**: The current neuron-parallel path supports `neuron_sample_rate` (training on a random subset of examples). The sort-reduce approach could filter in Phase 1 (skip tuple emission for unsampled examples) at negligible cost.
+
+## Conclusion
+
+GPU-accelerated training via sort-reduce is the natural next step for the WNN accelerator. The existing infrastructure (packed inputs, connection arrays, sparse export format) provides most of the scaffolding. The main engineering effort is implementing GPU radix sort and segmented reduction in Metal, then wiring the training dispatch alongside the existing evaluation dispatch. Expected wall-clock improvement: **15-20x for the full train+evaluate cycle**, which would reduce a 10-phase overnight run from ~8 hours to ~30 minutes.
+
 # Next
 
 - Run the 10-phase template end-to-end and compare against 7-phase baseline
 - Investigate the 0% accuracy bug observed on first TS neurons iteration
-- Explore GPU-accelerated training via LSM-tree memory model
+- Implement GPU-accelerated training via sort-reduce (see investigation above)
 - Tune axonogenesis hyperparameters: `axon_entropy_threshold`, `axon_rewire_count`, `redundancy_weight`
