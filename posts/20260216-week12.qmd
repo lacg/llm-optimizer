@@ -1,0 +1,299 @@
+---
+title: "Week 12 -- Dedicated Adaptation Phases: From Baldwin Effect to Axonogenesis"
+author: "Luiz Garcia"
+date: 2026-02-16
+abstract: |
+  Replaced inline Baldwin effect adaptation with dedicated optimization phases ---
+  neurogenesis, synaptogenesis, and a new axonogenesis mechanism --- each operating
+  on the full population between GA and TS passes. Axonogenesis uses a hybrid
+  mutual-information algorithm (entropy filter + accuracy delta + redundancy penalty)
+  to rewire low-value connections to high-information input bits.
+doi: ""
+license: "CC-BY-NC-SA-4.0"
+format: html
+---
+
+# Summary
+
+Last week we embedded adaptation inside GA/TS evaluation (the Baldwin effect). This week we discovered that inline adaptation was *destructive* --- CE jumped from 9.22 to 9.69 when adaptation ran during evolutionary fitness evaluation. The problem: adaptation modified architectures mid-evaluation, corrupting the fitness signal that GA/TS relies on for selection.
+
+The fix: **promote adaptation to its own dedicated phases**. Instead of silently modifying genomes during evaluation, neurogenesis and synaptogenesis now run as full optimization phases in the flow template, applied to the entire population from the previous phase. This also enabled a third mechanism --- **axonogenesis** --- which rewires connections using mutual information rather than just pruning/growing them.
+
+The result is a 10-phase architecture search template:
+
+```
+Grid Search → GA Neurons → Neurogenesis → TS Neurons →
+GA Bits → Synaptogenesis → TS Bits →
+GA Connections → Axonogenesis → TS Connections
+```
+
+Pattern at each level: **explore** (GA) → **exploit stats** (adaptation) → **refine** (TS).
+
+# Why Inline Adaptation Failed
+
+The Baldwin effect [@baldwin1896new] works when adaptation creates a smooth fitness gradient --- individuals who *respond well* to development get higher scores, guiding evolution. But our adaptation mechanisms (synaptogenesis, neurogenesis) are aggressive architectural modifications: adding/removing neurons, pruning/growing connections. When these changes happen *inside* the evaluation loop:
+
+1. **Fitness becomes non-stationary**: The same genome gets different scores depending on adaptation stochasticity
+2. **GA selection is corrupted**: GA selects for "genomes that happened to get favorable random adaptation" rather than "genomes with good connectivity"
+3. **TS neighbors are incomparable**: Neighbor scores depend on both the mutation *and* the adaptation, making it impossible to attribute improvement to the right cause
+
+Dedicated phases solve all three problems: GA/TS evaluate genomes with *fixed* architectures, then adaptation operates on the *entire winning population* in a separate phase with its own iteration budget.
+
+# The Three Adaptation Mechanisms
+
+## Synaptogenesis --- Connection-Level Adaptation
+
+Synaptogenesis modifies the number of connections per neuron, based on training statistics [@huttenlocher1979synaptic]:
+
+**Pruning**: Connections with entropy below `median_entropy * threshold` are removed. Low entropy means the connection's input bit doesn't discriminate between memory addresses --- it's wasted address space. Analogous to Optimal Brain Damage [@lecun1990optimal].
+
+**Growth**: Neurons with high fill rate *and* high error rate need more address space to disambiguate colliding examples. New random connections are added, increasing `bits_per_neuron`.
+
+The net effect: each neuron converges to its optimal address space size --- enough bits to discriminate examples, not so many that the space is mostly empty.
+
+## Neurogenesis --- Cluster-Level Adaptation
+
+Neurogenesis adds or removes neurons from clusters [@eriksson1998neurogenesis; @cowan1984regressive]:
+
+**Addition**: Clusters with high error rate and adequate fill get new neurons, cloned from existing ones with perturbed connections. More neurons = more "perspectives" on the input, improving the cluster's voting accuracy.
+
+**Removal (apoptosis)**: Neurons whose outputs are too similar to peers (high Jaccard similarity) are removed. They're redundant --- they occupy memory without adding information to the cluster's vote.
+
+A cooldown mechanism prevents oscillation: clusters that just added a neuron can't remove one for several iterations, and vice versa.
+
+## Axonogenesis --- Connection Rewiring
+
+Axonogenesis is the new mechanism. Unlike synaptogenesis (which changes the *number* of connections), axonogenesis *replaces* low-value connections with high-value ones, keeping the same bit count per neuron. This is more targeted: it answers "not just *whether* to have a connection, but *which* input to connect to."
+
+The name comes from axon guidance in neurobiology --- the process by which growing axons navigate to their target neurons using molecular cues (netrins for attraction, semaphorins for repulsion) [@tessierlavigne1996molecular]. Our "netrins" are high-MI input bits; our "semaphorins" are redundant bits correlated with existing connections.
+
+# Mutual Information for Connection Selection
+
+## What Is Mutual Information?
+
+Mutual Information (MI) measures how much knowing the value of one variable reduces uncertainty about another [@shannon1948mathematical]. For our purposes: **how much does knowing input bit $X_b$ tell us about the target prediction $Y$?**
+
+$$I(X_b; Y) = \sum_{x \in \{0,1\}} \sum_{y \in \{0,1\}} p(x,y) \log \frac{p(x,y)}{p(x) \cdot p(y)}$$
+
+If $X_b$ and $Y$ are independent, MI = 0 (knowing the bit tells us nothing). If $X_b$ perfectly predicts $Y$, MI = $H(Y)$ (knowing the bit eliminates all uncertainty).
+
+For RAM neurons, each input bit contributes to the address that indexes into memory. A "good" connection is one where the input bit's value is *correlated* with the correct prediction --- changing that bit changes the address in a way that matters for accuracy. A "bad" connection is one where the bit is nearly constant (entropy ≈ 0) or uncorrelated with the target (MI ≈ 0).
+
+## Why Not Compute MI Directly?
+
+Full MI computation requires building a 2×2 contingency table for each candidate bit × neuron pair. For 3200 neurons × 1000 samples × 500 candidates, this means 1.6 billion memory lookups --- and the estimates are noisy because RAM address spaces are exponentially large and sparsely filled (2^20 possible addresses but only ~1000 training samples).
+
+## The Hybrid Algorithm
+
+Our hybrid approach gets ~90% of MI's benefit at ~10% of the cost, specifically designed for the sparse address spaces of RAM neurons:
+
+### Stage 1: Entropy Filter (Free)
+
+Pre-compute the **marginal entropy** $H(X_b)$ for every input bit from the training data. Bits with entropy < 0.1 are nearly constant (always 0 or always 1) --- connecting to them is like connecting to a constant. This eliminates ~90% of candidates before any expensive computation.
+
+For the remaining candidates, rank by entropy (descending) and keep the top $M = 20$ per neuron. High-entropy bits have more potential to discriminate between addresses.
+
+### Stage 2: Accuracy Delta (Moderate)
+
+For each weak connection × filtered candidate, directly measure the accuracy change if we swap:
+
+1. **Pre-compute base addresses** for this neuron on all sampled examples (once per neuron)
+2. For each candidate swap, use **address bit-flipping**: if old and new input bits differ on an example, XOR the address at that position. This avoids recomputing the full address ($O(n_{bits})$) for each candidate --- just one XOR per sample where bits differ.
+3. Look up the old and new predictions from trained memory using `storage_read()`
+4. Count net accuracy change: `delta = sum(new_correct - old_correct)`
+5. **Only proceed if delta > 0** (strict improvement)
+
+This is better than MI for RAM WNNs specifically because it directly optimizes the metric we care about (accuracy), and handles sparse address spaces naturally --- the accuracy delta is measured on actual training examples, not estimated from noisy statistics.
+
+### Stage 3: Redundancy Penalty (Cheap)
+
+A candidate might improve accuracy on its own but be redundant with an existing connection. If two connections observe highly correlated input bits, they don't provide independent information to the address.
+
+We compute **Jaccard similarity** between the candidate bit's values and each existing connection's values on the sampled examples:
+
+$$J(A, B) = \frac{|A \cap B|}{|A \cup B|}$$
+
+where $A$ and $B$ are the sets of examples where each bit is 1. Jaccard is better than Pearson correlation for binary features because it doesn't treat mutual zeros as "similar" --- two bits that are both usually 0 shouldn't be considered correlated.
+
+The final score combines accuracy delta with redundancy:
+
+$$\text{score} = \Delta_{\text{accuracy}} \times (1 - 0.5 \times \max_i J(\text{candidate}, \text{existing}_i))$$
+
+A fully redundant candidate (Jaccard = 1.0) has its score halved. A fully independent candidate passes through unchanged.
+
+### Computational Cost
+
+| Stage | Cost | What it eliminates |
+|-------|------|--------------------|
+| Entropy filter | Free (reuses `bit_ones` from stats) | ~90% of candidates |
+| Accuracy delta | $O(K \times M \times N_{\text{samples}})$ memory lookups | Candidates with no accuracy benefit |
+| Redundancy penalty | $O(M \times n_{\text{bits}} \times N_{\text{samples}})$ comparisons | Correlated candidates |
+
+For a typical neuron with 20 bits, $K = 2$ weak connections, $M = 20$ candidates, and 1000 samples: ~40K memory lookups + ~400K byte comparisons per neuron. Across 3200 neurons, this adds ~5--10 seconds per adaptation pass --- negligible compared to the training time.
+
+# Comparison: GA/TS vs. Stats-Guided Adaptation
+
+| | **GA/TS (Random Search)** | **Adaptation (Stats-Guided)** |
+|---|---|---|
+| **Method** | Random mutations + selection | Targeted modifications from training statistics |
+| **What it optimizes** | Which connections, how many bits, how many neurons | Same, but using information about *why* the current config is suboptimal |
+| **Exploration** | High (random perturbations explore broadly) | Low (only modifies what stats say needs changing) |
+| **Exploitation** | Moderate (selection pressure is indirect) | High (directly fixes identified problems) |
+| **Cost per step** | 1 train + 1 eval per genome | 1 train + 1 stats + 1 adaptation + 1 retrain + 1 eval |
+| **When useful** | Early search (broad exploration needed) | After GA has found good region (fine-tuning needed) |
+
+This is why the template alternates GA → adaptation → TS at each level: GA explores broadly, adaptation exploits statistics to fine-tune, and TS refines in the neighborhood.
+
+# Implementation
+
+## Phase Architecture
+
+Three new `ExperimentType` values were added:
+
+```python
+class ExperimentType(IntEnum):
+    GA = 0
+    TS = 1
+    GRID_SEARCH = 2
+    NEUROGENESIS = 3
+    SYNAPTOGENESIS = 4
+    AXONOGENESIS = 5
+```
+
+Each adaptation phase follows the same pattern as GA/TS:
+
+1. Receive population from previous phase
+2. For $N$ iterations (configurable, default 50):
+   - Train all genomes → compute GPU stats → apply adaptation → retrain → evaluate
+   - Sort by fitness, keep top performers
+   - Report iteration metrics to dashboard
+3. Return best genome + final population to next phase
+
+## GPU Stats: Single Dispatch for All Genomes
+
+A key performance requirement: stats computation must use the GPU. The CPU path took ~12 minutes per generation for 50 genomes × 3200 neurons. The GPU path uses a batched dispatch (`compute_batch_stats_gpu()`) that marshals all genomes into a single Metal dispatch:
+
+- **Single GPU overhead** instead of 50+ dispatches
+- **Shared input buffers** (packed training data is the same for all genomes)
+- **GPU saturated** with 10K+ neurons (vs. 200 per individual genome)
+
+Result: ~5 seconds for all 50 genomes, vs. ~12 minutes on CPU (144x speedup).
+
+## Axonogenesis in Rust
+
+The core algorithm runs in Rust (`adaptation.rs:axonogenesis_pass()`) and is called from the adaptation loop in `bitwise_ramlm.rs`. Key implementation details:
+
+**Neuron-to-cluster mapping**: Built once per pass from `neurons_per_cluster`. Maps global neuron index to (cluster_id, local_neuron_index) for correct memory access.
+
+**Address pre-computation**: Base addresses computed once per neuron using MSB-first encoding (`addr |= bit << (n_bits - 1 - i)`). Candidate swaps use XOR bit-flipping instead of full recomputation.
+
+**Memory lookup**: `storage_read()` returns QUAD_WEIGHTS values (0.0, 0.25, 0.75, 1.0) from the trained neuron memory. The prediction is "correct" if `(value >= 0.5) == (target > 0)`.
+
+## The 10-Phase Template
+
+The `bitwise-10-phase` template is available alongside the existing `bitwise-7-phase`:
+
+| Phase | Type | What it optimizes |
+|-------|------|-------------------|
+| 1 | Grid Search | Initial neurons × bits sweep |
+| 2 | GA Neurons | Evolve neuron counts |
+| 3 | **Neurogenesis** | Stats-guided neuron add/remove |
+| 4 | TS Neurons | Refine neuron counts |
+| 5 | GA Bits | Evolve bit allocations |
+| 6 | **Synaptogenesis** | Stats-guided connection prune/grow |
+| 7 | TS Bits | Refine bit allocations |
+| 8 | GA Connections | Evolve which bits to observe |
+| 9 | **Axonogenesis** | MI-guided connection rewiring |
+| 10 | TS Connections | Refine connection choices |
+
+Inline adaptation (the Baldwin effect from last week) has been removed from the UI --- the dedicated phases replace it entirely.
+
+## Files Modified
+
+| File | Change |
+|---|---|
+| `adaptation.rs` | New `axonogenesis_pass()` with hybrid MI algorithm; config fields for axon thresholds |
+| `bitwise_ramlm.rs` | Wire axonogenesis dispatch with new signature; `AdaptiveResult.rewired` field |
+| `lib.rs` | PyO3 boundary: axonogenesis config params and rewired return value |
+| `bitwise_evaluator.py` | `AdaptationConfig` dataclass with axonogenesis fields |
+| `architecture_strategies.py` | `NeurogenesisStrategy`, `SynaptogenesisStrategy`, `AxonogenesisStrategy` classes |
+| `experiment.py` | New `ExperimentType` values (3, 4, 5) |
+| `factory.py` | Strategy factory dispatch for new types |
+| `flow.py` | `bitwise_10_phase()` template factory |
+| `worker.py` | Phase type dispatch for adaptation experiments |
+| `+page.svelte` (flow/new) | Template selector, adaptation iterations input, purple badges |
+
+# Related Work
+
+The hybrid MI approach draws from information-theoretic feature selection [@brown2012conditional; @peng2005mrmr], where features are ranked by MI with the target minus redundancy with already-selected features (mRMR). Our accuracy delta is a direct proxy for MI that avoids the noise of estimating MI in exponentially large, sparsely filled address spaces.
+
+The prune-and-regrow paradigm comes from sparse evolutionary training (SET) [@mocanu2018set], which prunes weights below a magnitude threshold and regrows random ones. RigL [@evci2020rigl] improved on SET by using gradient information to guide where to regrow --- our accuracy delta serves the same role as gradients in guiding regrowth. The Lottery Ticket Hypothesis [@frankle2019lottery] showed that sparse subnetworks exist within dense networks that match full performance --- our axonogenesis is searching for these subnetworks in connection space.
+
+# Cooperative Multi-Start Tabu Search
+
+## From Single-Source to Elite Spawning
+
+Classic TS generates all neighbors from a single incumbent solution --- the best genome found so far. This is a greedy intensification strategy: it searches deeply in one neighborhood but ignores promising regions discovered earlier. When the landscape has multiple good basins (common in combinatorial optimization over connectivity maps), single-source TS converges to whichever basin it reaches first.
+
+**Cooperative multi-start** [@crainic1997cooperative; @glover1998scatter] replaces this with a reference set of elite solutions. Each iteration, the top $k$ genomes by fitness rank each spawn an equal share of the neighbor budget:
+
+```
+all_neighbors cache (50 genomes)
+        │
+        ▼  rank by fitness (HARMONIC_RANK)
+   ┌────────────────────────────┐
+   │ top 20% = 10 elite sources │
+   └────────────────────────────┘
+        │
+        ▼  each spawns 5 neighbors
+   ┌────────────────────────────┐
+   │ 50 new neighbors total     │
+   │ (subject to tabu rules)    │
+   └────────────────────────────┘
+        │
+        ▼  merge into cache, trim by fitness rank
+   ┌────────────────────────────┐
+   │ updated cache (top 50)     │
+   └────────────────────────────┘
+```
+
+## Why Fitness Rank, Not Raw CE?
+
+Source selection uses `fitness_calculator.rank()` --- the same weighted harmonic mean of CE rank and accuracy rank used throughout GA/TS. This matters because:
+
+1. **CE alone is noisy**: Two genomes with CE 9.22 and 9.23 may have identical quality; the difference is stochastic
+2. **Accuracy provides complementary signal**: A genome with slightly worse CE but better accuracy may generalize better
+3. **Rank-based selection is scale-invariant**: Works whether CE ranges from 9.0--10.0 or from 2.0--5.0
+
+## Implementation
+
+The mechanism was already implemented behind the `diversity_sources_pct` config parameter (defaulting to 0.0, i.e., disabled). The change is purely in defaults:
+
+```python
+@dataclass
+class TSConfig(OptimizationConfig):
+    neighbors_per_iter: int = 50     # was 20
+    diversity_sources_pct: float = 0.2  # was 0.0 (disabled)
+```
+
+With `diversity_sources_pct=0.2` and `total_neighbors_size=50`:
+
+- 50 × 0.2 = 10 elite sources per iteration
+- 50 ÷ 10 = 5 neighbors per source
+- Each source is cloned before mutation (no aliasing)
+- All neighbors follow the same tabu rules as single-source mode
+
+The existing code (lines 2073--2108 of `generic_strategies.py`) handles equal splitting with remainder distribution, fitness-ranked source selection, and tabu compliance. No algorithmic changes were needed --- only flipping the default on.
+
+## Why This Matters for Architecture Search
+
+In connectivity optimization, each genome encodes *which input bits each neuron observes*. Good connectivity patterns tend to cluster in basins: similar bit selections that all perform well. But different clusters (e.g., tier 0 vs tier 2) may have independent optimal regions.
+
+Single-source TS finds one good basin and stays there. Cooperative multi-start maintains diversity across basins --- if source A has good tier 0 connections and source B has good tier 2 connections, both continue to be refined in parallel. The cache trimming by fitness rank ensures that only the best genomes from *all* basins survive, creating implicit competition between search trajectories.
+
+# Next
+
+- Run the 10-phase template end-to-end and compare against 7-phase baseline
+- Investigate the 0% accuracy bug observed on first TS neurons iteration
+- Explore GPU-accelerated training via LSM-tree memory model
+- Tune axonogenesis hyperparameters: `axon_entropy_threshold`, `axon_rewire_count`, `redundancy_weight`
