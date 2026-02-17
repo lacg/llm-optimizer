@@ -229,6 +229,68 @@ The hybrid MI approach draws from information-theoretic feature selection [@brow
 
 The prune-and-regrow paradigm comes from sparse evolutionary training (SET) [@mocanu2018set], which prunes weights below a magnitude threshold and regrows random ones. RigL [@evci2020rigl] improved on SET by using gradient information to guide where to regrow --- our accuracy delta serves the same role as gradients in guiding regrowth. The Lottery Ticket Hypothesis [@frankle2019lottery] showed that sparse subnetworks exist within dense networks that match full performance --- our axonogenesis is searching for these subnetworks in connection space.
 
+# Cooperative Multi-Start Tabu Search
+
+## From Single-Source to Elite Spawning
+
+Classic TS generates all neighbors from a single incumbent solution --- the best genome found so far. This is a greedy intensification strategy: it searches deeply in one neighborhood but ignores promising regions discovered earlier. When the landscape has multiple good basins (common in combinatorial optimization over connectivity maps), single-source TS converges to whichever basin it reaches first.
+
+**Cooperative multi-start** [@crainic1997cooperative; @glover1998scatter] replaces this with a reference set of elite solutions. Each iteration, the top $k$ genomes by fitness rank each spawn an equal share of the neighbor budget:
+
+```
+all_neighbors cache (50 genomes)
+        │
+        ▼  rank by fitness (HARMONIC_RANK)
+   ┌────────────────────────────┐
+   │ top 20% = 10 elite sources │
+   └────────────────────────────┘
+        │
+        ▼  each spawns 5 neighbors
+   ┌────────────────────────────┐
+   │ 50 new neighbors total     │
+   │ (subject to tabu rules)    │
+   └────────────────────────────┘
+        │
+        ▼  merge into cache, trim by fitness rank
+   ┌────────────────────────────┐
+   │ updated cache (top 50)     │
+   └────────────────────────────┘
+```
+
+## Why Fitness Rank, Not Raw CE?
+
+Source selection uses `fitness_calculator.rank()` --- the same weighted harmonic mean of CE rank and accuracy rank used throughout GA/TS. This matters because:
+
+1. **CE alone is noisy**: Two genomes with CE 9.22 and 9.23 may have identical quality; the difference is stochastic
+2. **Accuracy provides complementary signal**: A genome with slightly worse CE but better accuracy may generalize better
+3. **Rank-based selection is scale-invariant**: Works whether CE ranges from 9.0--10.0 or from 2.0--5.0
+
+## Implementation
+
+The mechanism was already implemented behind the `diversity_sources_pct` config parameter (defaulting to 0.0, i.e., disabled). The change is purely in defaults:
+
+```python
+@dataclass
+class TSConfig(OptimizationConfig):
+    neighbors_per_iter: int = 50     # was 20
+    diversity_sources_pct: float = 0.2  # was 0.0 (disabled)
+```
+
+With `diversity_sources_pct=0.2` and `total_neighbors_size=50`:
+
+- 50 × 0.2 = 10 elite sources per iteration
+- 50 ÷ 10 = 5 neighbors per source
+- Each source is cloned before mutation (no aliasing)
+- All neighbors follow the same tabu rules as single-source mode
+
+The existing code (lines 2073--2108 of `generic_strategies.py`) handles equal splitting with remainder distribution, fitness-ranked source selection, and tabu compliance. No algorithmic changes were needed --- only flipping the default on.
+
+## Why This Matters for Architecture Search
+
+In connectivity optimization, each genome encodes *which input bits each neuron observes*. Good connectivity patterns tend to cluster in basins: similar bit selections that all perform well. But different clusters (e.g., tier 0 vs tier 2) may have independent optimal regions.
+
+Single-source TS finds one good basin and stays there. Cooperative multi-start maintains diversity across basins --- if source A has good tier 0 connections and source B has good tier 2 connections, both continue to be refined in parallel. The cache trimming by fitness rank ensures that only the best genomes from *all* basins survive, creating implicit competition between search trajectories.
+
 # Next
 
 - Run the 10-phase template end-to-end and compare against 7-phase baseline
