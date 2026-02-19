@@ -1,0 +1,238 @@
+---
+title: "Optimization Methods"
+description: "RAM memory models, Genetic Algorithm with elites, and population-based Tabu Search used in WNN architecture optimization."
+date: "2026-02-18"
+---
+
+# Optimization Methods
+
+This page details the three core components of our WNN optimization pipeline: **RAM memory models** (the substrate being optimized), **Genetic Algorithm** (global search), and **Tabu Search** (local refinement). Together, they form a phased architecture search that discovers optimal neuron configurations for language modeling.
+
+## RAM Memory Models {#ram-memory}
+
+RAM (Random Access Memory) neurons are the fundamental building block of Weightless Neural Networks [@ludermir1999weightless; @aleksander1984wisard]. Unlike traditional neurons that learn continuous weights via gradient descent, RAM neurons store discrete values in lookup tables indexed by input bit patterns.
+
+### How a RAM Neuron Works
+
+Each neuron observes a subset of input bits (its **connectivity**) and uses them as an address into its memory:
+
+```
+Input bits:  [0, 1, 1, 0, 1, 0, 0, 1]
+                  ↑     ↑        ↑
+Connectivity:     [1,    3,       7]    ← neuron observes bits 1, 3, 7
+
+Address:     (1, 0, 1) = binary 5
+
+Memory[5] → stored value
+```
+
+The connectivity pattern determines what **features** the neuron detects. Optimizing connectivity is equivalent to learning which input features matter --- this is where GA and TS operate.
+
+### Ternary Memory (3 states)
+
+The original RAM model uses three cell states:
+
+| Value | Meaning | Numeric |
+|-------|---------|---------|
+| `FALSE` | Trained negative | 0.0 |
+| `TRUE` | Trained positive | 1.0 |
+| `EMPTY` | Untrained | 0.5 |
+
+```
+Memory cell states (ternary):
+
+  Address:  0    1    2    3    4    5    6    7
+          ┌────┬────┬────┬────┬────┬────┬────┬────┐
+  Value:  │ T  │ F  │ ·  │ T  │ ·  │ F  │ T  │ ·  │
+          └────┴────┴────┴────┴────┴────┴────┴────┘
+            1.0  0.0  0.5  1.0  0.5  0.0  1.0  0.5
+                      ↑              ↑              ↑
+                    EMPTY          EMPTY          EMPTY
+                  (untrained)    (untrained)    (untrained)
+```
+
+**Problem**: EMPTY cells default to 0.5, which can dominate the output when many cells are untrained. With large address spaces (high bit count), most cells remain EMPTY, and the 0.5 default drowns out the signal from trained cells.
+
+### Quad-Weighted Memory (4 states) {#quad-weighted}
+
+To address the EMPTY-dominance problem, we introduced a four-state model:
+
+| Value | Meaning | Weight |
+|-------|---------|--------|
+| `FALSE` | Strong negative | 0.0 |
+| `WEAK_FALSE` | Untrained (default) | 0.25 |
+| `WEAK_TRUE` | Weak positive | 0.5 |
+| `TRUE` | Strong positive | 1.0 |
+
+```
+Memory cell states (quad-weighted):
+
+  Address:  0    1    2    3    4    5    6    7
+          ┌────┬────┬────┬────┬────┬────┬────┬────┐
+  Value:  │ T  │ F  │ wF │ T  │ wF │ F  │ wT │ wF │
+          └────┴────┴────┴────┴────┴────┴────┴────┘
+            1.0  0.0 0.25  1.0 0.25  0.0  0.5  0.25
+                      ↑              ↑         ↑
+                   untrained      untrained   weak
+                   (bias→F)      (bias→F)   positive
+```
+
+**Key advantage**: Untrained cells now default to 0.25 instead of 0.5. Since most cells are untrained, the neuron's default output is biased toward FALSE (low confidence). Only cells that have been explicitly trained to TRUE contribute strongly. This means the trained signal stands out from the untrained background.
+
+**Trade-off**: The 0.25 default means untrained neurons aren't fully neutral --- they have a slight negative bias. This is intentional: in language modeling, most tokens are *not* the correct prediction, so a low-confidence default is appropriate.
+
+### Output Computation
+
+For a cluster of $N$ neurons predicting a single output bit, the probability is computed as:
+
+$$P(\text{bit} = 1) = \frac{1}{N} \sum_{i=1}^{N} \text{memory}_i[\text{address}_i]$$
+
+Where $\text{address}_i$ is determined by neuron $i$'s connectivity pattern applied to the input bits.
+
+
+## Genetic Algorithm with Elites {#genetic-algorithm}
+
+We use a Genetic Algorithm [@holland1975adaptation; @goldberg1989genetic] for global architecture search --- exploring broadly across the space of neuron counts, bit widths, and connectivity patterns.
+
+### GA Loop
+
+```
+┌─────────────────────────────────────────────┐
+│  Generation 0: Random population (N genomes) │
+└──────────────────────┬──────────────────────┘
+                       ▼
+         ┌─────────────────────────┐
+         │  Evaluate all genomes   │
+         │  (train + measure CE)   │
+         └────────────┬────────────┘
+                      ▼
+         ┌─────────────────────────┐
+         │  Rank by fitness        │◄──────────┐
+         │  (harmonic mean of      │           │
+         │   CE rank + Acc rank)   │           │
+         └────────────┬────────────┘           │
+                      ▼                        │
+         ┌─────────────────────────┐           │
+         │  Select top 20% as      │           │
+         │  ELITES (preserved)     │           │
+         └────────────┬────────────┘           │
+                      ▼                        │
+         ┌─────────────────────────┐           │
+         │  Generate 80% offspring │           │
+         │  via crossover+mutation │           │
+         └────────────┬────────────┘           │
+                      ▼                        │
+         ┌─────────────────────────┐           │
+         │  New population =       │           │
+         │  elites + offspring     ├───────────┘
+         └─────────────────────────┘
+              (repeat for G generations)
+```
+
+### Elite Preservation
+
+The top 20% of the population by fitness ranking are preserved unchanged into the next generation. This guarantees that the best solutions are never lost, while the remaining 80% are replaced by offspring from crossover and mutation.
+
+### Fitness Ranking: Weighted Harmonic Mean
+
+We optimize for both Cross-Entropy (lower = better) and Accuracy (higher = better) simultaneously using a weighted harmonic mean of ranks:
+
+$$\text{WHM} = \frac{w_\text{ce} + w_\text{acc}}{\frac{w_\text{ce}}{\text{rank}_\text{ce}} + \frac{w_\text{acc}}{\text{rank}_\text{acc}}}$$
+
+This penalizes genomes that are good on one metric but poor on the other --- a genome ranked 1st in CE but 50th in accuracy scores worse than one ranked 3rd in both.
+
+
+## Population-Based Tabu Search {#tabu-search}
+
+After GA provides a broad exploration, Tabu Search [@glover1989tabu1; @glover1990tabu2] performs local refinement. We use a **population-based variant** inspired by cooperative search [@crainic1997cooperative], extending classical single-solution TS with a (μ + λ) selection strategy.
+
+### Classical TS vs. Our Approach
+
+| Aspect | Classical TS | Our Population-Based TS |
+|--------|-------------|------------------------|
+| **Current solution** | Single best | Population of N genomes |
+| **Neighbor source** | Mutate the one best | Top 20% each produce offspring |
+| **Selection** | Accept best non-tabu neighbor | (μ + λ): rank 2N, keep top N |
+| **Diversity** | Tabu list only | Population diversity + tabu |
+| **Reference** | @glover1989tabu1 | @crainic1997cooperative |
+
+### Population-Based TS Loop
+
+```
+┌──────────────────────────────────────────────┐
+│  Iteration 0: Population from GA (N genomes)  │
+└──────────────────────┬───────────────────────┘
+                       ▼
+         ┌─────────────────────────┐
+         │  Rank population by     │◄──────────┐
+         │  fitness (WHM)          │           │
+         └────────────┬────────────┘           │
+                      ▼                        │
+         ┌─────────────────────────┐           │
+         │  Top 20% = elite        │           │
+         │  sources (E genomes)    │           │
+         └────────────┬────────────┘           │
+                      ▼                        │
+         ┌─────────────────────────┐           │
+         │  Each source generates  │           │
+         │  N/E offspring (mutants)│           │
+         │  → N total offspring    │           │
+         │  (respecting tabu list) │           │
+         └────────────┬────────────┘           │
+                      ▼                        │
+         ┌─────────────────────────┐           │
+         │  Combined pool:         │           │
+         │  N (pop) + N (offspring)│           │
+         │  = 2N candidates        │           │
+         └────────────┬────────────┘           │
+                      ▼                        │
+         ┌─────────────────────────┐           │
+         │  Rank all 2N, keep      │           │
+         │  top N → new population ├───────────┘
+         └─────────────────────────┘
+              (repeat for T iterations)
+```
+
+### Concrete Example
+
+With population size N = 60 and `diversity_sources_pct = 0.2`:
+
+- **Elite sources**: top 20% of 60 = **12 genomes**
+- **Offspring per source**: 60 / 12 = **5 mutations each**
+- **Total offspring**: 12 × 5 = **60 new genomes**
+- **Combined pool**: 60 (current) + 60 (offspring) = **120 candidates**
+- **Selection**: rank all 120 by fitness, keep top **60** → new population
+
+### Tabu List
+
+The tabu list prevents cycling by recording recent moves. If a mutation would reverse a recent move (e.g., changing bit width from 16→20 when a recent move was 20→16), it is rejected. This forces exploration of new regions of the solution space.
+
+### Why Population-Based?
+
+Classical single-solution TS can get trapped in local optima because all neighbors come from one genome. By maintaining a diverse population and generating offspring from multiple elite sources:
+
+1. **Multiple search trajectories**: 12 different starting points explore 12 different neighborhoods simultaneously
+2. **Implicit crossover**: the (μ + λ) selection combines good features from different lineages
+3. **Robustness**: if one lineage degenerates, others continue improving
+
+
+## Phased Architecture Search {#phased-search}
+
+GA and TS work together in a structured pipeline. Each phase optimizes one dimension of the architecture while keeping others fixed:
+
+| Phase | Method | Optimizes | Fixed |
+|-------|--------|-----------|-------|
+| 0 | Grid Search | neurons × bits | connections |
+| 1 | GA | Neurons per cluster | bits, connections |
+| 2 | Neurogenesis | +/- neurons (local) | bits, connections |
+| 3 | TS | Neurons (refine) | bits, connections |
+| 4 | GA | Bits per cluster | neurons, connections |
+| 5 | Synaptogenesis | +/- bits (local) | neurons, connections |
+| 6 | TS | Bits (refine) | neurons, connections |
+| 7 | GA | Connectivity patterns | neurons, bits |
+| 8 | Axonogenesis | rewire connections | neurons, bits |
+| 9 | TS | Connections (refine) | neurons, bits |
+
+The population flows between phases: GA's final population seeds the next TS phase, and TS's refined population seeds the next GA phase. This coarse-to-fine approach leverages GA's global exploration and TS's local refinement.
+
+## References
