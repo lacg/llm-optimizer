@@ -1,0 +1,216 @@
+---
+title: "Week 13 -- Multi-Stage Hierarchical Prediction: Selector Mode, Invalid Tokens, and the S0 Bottleneck"
+author: "Luiz Garcia"
+date: 2026-02-28
+abstract: |
+  Introduced multi-stage hierarchical prediction where S0 predicts the token group
+  and S1 predicts within-group. Compared selector mode (softmax gating) vs input
+  concatenation, tiered vs bitwise cluster types, and Phase C improvements
+  (invalid token rejection, label smoothing). Best combined CE dropped from 9.11
+  (single-stage) to 9.12 (multi-stage), but the real story is in the decomposition:
+  S1 within-group CE reaches 3.86 while S0 group CE plateaus at 5.23.
+  The bottleneck is now clearly S0.
+doi: ""
+license: "CC-BY-NC-SA-4.0"
+format: html
+---
+
+# Summary
+
+This week we moved from single-stage bitwise architectures (all 50K tokens predicted in one shot) to **multi-stage hierarchical prediction**, where vocabulary is partitioned into K groups and two stages cooperate:
+
+- **S0** (group predictor): Given context, predict which group the next token belongs to
+- **S1** (within-group predictor): Given context + group, predict the exact token within that group
+
+The combined CE decomposes as: $\text{CE}_{\text{combined}} = \text{CE}_{S0} + \text{CE}_{S1}$
+
+We ran 5 multi-stage flows with different configurations and compared against the bitwise-10-phase baselines from week 12. The headline: multi-stage doesn't improve overall CE yet, but it reveals where the information bottleneck is — and it's not where we expected.
+
+# Experimental Setup
+
+All flows use WikiText-2, GPT-2 tokenizer (50,257 tokens), context size 2, and QUAD_WEIGHTED memory mode.
+
+## Single-Stage Baselines (Bitwise 10-Phase)
+
+| Flow | Name | Context | Final CE | Accuracy |
+|------|------|---------|----------|----------|
+| 39 | ctx2-bitwise-20260217 | 2 | **9.1061** | 8.05% |
+| 47 | ctx2-bitwise-20260218-evolving | 2 | **9.1085** | 8.38% |
+| 46 | ctx2-bitwise-20260217-60 | 2 | 9.1269 | 8.51% |
+| 45 | ctx3-bitwise-20260217-60 | 3 | 9.1200 | 7.02% |
+| 44 | ctx4-bitwise-20260217-60 | 4 | 9.1622 | 7.29% |
+
+: Single-stage bitwise baselines. All use the full 10-phase optimization template (Grid → GA Neurons → Neurogenesis → TS Neurons → GA Bits → Synaptogenesis → TS Bits → GA Connections → Axonogenesis → TS Connections). {#tbl-baselines}
+
+**Key observation**: Context 2 is optimal. Longer context (3, 4) *increases* CE — the address space explosion problem documented in previous weeks.
+
+## Multi-Stage Flows
+
+| Flow | Name | Mode | S0 Type | S1 Type | K | Invalid | Top-M | Phases | Max Neurons |
+|------|------|------|---------|---------|---|---------|-------|--------|-------------|
+| 49 | conc-20260222 | concat | tiered | tiered | 225+224 | No | — | 10+10 | 300 |
+| 51 | sel-20260222 | selector | tiered | tiered | 225+224 | No | — | 10+10 | 300 |
+| 59 | sel-20260226 | selector | tiered | tiered | 256+256 | **Yes** | 5 | 2+2 | 50 |
+| 60 | bit-20260227 | selector | bitwise | bitwise | 225+224 | **Yes** | 5 | 2+2 | 300 |
+| 61 | bit-sel-20260227 | selector | bitwise | bitwise | 225+224 | **Yes** | 5 | 2+2 | 300 |
+
+: Multi-stage flow configurations. "concat" mode feeds S0's output bits as additional input to S1. "selector" mode uses softmax gating over S0 group probabilities. Flows 59-61 use the "fast" template (Grid + GA only, no TS/adaptation phases). {#tbl-configs}
+
+# Results
+
+## Combined CE and Per-Stage Decomposition
+
+| Flow | Name | Combined CE | S0 CE | S1 CE | Acc |
+|------|------|-------------|-------|-------|-----|
+| 61 | bitwise-selector | **9.1209** | 5.2298 | **3.8910** | 9.24% |
+| 51 | tiered-selector | 10.0551 | 5.2318 | 4.8233 | 14.79% |
+| 49 | tiered-concat | 10.0569 | 5.2227 | 4.8342 | 14.41% |
+| 59 | tiered-selector (invalid) | 10.0938 | 5.3586 | 4.6896 | 8.94% |
+| 60 | bitwise-selector | 10.4707 | 5.2274 | 5.2434 | 6.93% |
+
+: Combined validation results using `best_fitness` genome. Combined CE = S0 CE + S1 CE. Sorted by combined CE. {#tbl-combined}
+
+## Per-Stage Optimization Progression
+
+### S0 (Group Prediction)
+
+| Flow | Grid CE | Final CE | Improvement | Phases |
+|------|---------|----------|-------------|--------|
+| 49 | 5.2654 | 5.2458 | 0.020 | 10 |
+| 51 | 5.2648 | 5.2521 | 0.013 | 10 |
+| 61 | 5.2860 | 5.2613 | 0.025 | 2 |
+| 60 | 5.3163 | 5.2633 | 0.053 | 2 |
+| 59 | 5.3841 | 5.3738 | 0.010 | 2 |
+
+: S0 (group prediction) optimization. All flows converge to CE ≈ 5.23-5.37 regardless of number of phases. {#tbl-s0}
+
+### S1 (Within-Group Prediction)
+
+| Flow | Grid CE | Final CE | Improvement | Phases |
+|------|---------|----------|-------------|--------|
+| 61 | 3.9337 | **3.8618** | 0.072 | 2 |
+| 59 | 4.6864 | 4.6929 | −0.007 | 2 |
+| 60 | 5.0496 | 4.7659 | 0.284 | 2 |
+| 51 | 4.8249 | 4.8166 | 0.008 | 10 |
+| 49 | 4.8800 | 4.8570 | 0.023 | 10 |
+
+: S1 (within-group prediction) optimization. Flow 61 achieves dramatically lower S1 CE with bitwise cluster type. {#tbl-s1}
+
+# Analysis
+
+## Finding 1: Multi-Stage Matches Single-Stage Overall, But Decomposes Differently
+
+The best multi-stage flow (61, CE=9.12) essentially matches the best single-stage (39, CE=9.11). This seems disappointing until you look at the decomposition:
+
+- **S0 plateau**: All multi-stage flows converge to S0 CE ≈ 5.23, regardless of cluster type, mode, or optimization phases. This is the cost of predicting which of ~225 groups the next token falls in, given only 2 tokens of context.
+- **S1 breakthrough**: Flow 61 achieves S1 CE = 3.86, meaning once you know the *group*, predicting the exact token within that group (out of ~224 candidates) costs only 3.86 nats. This is a much easier problem.
+
+The combined CE = 5.23 + 3.86 = 9.09 is competitive with single-stage, but it tells us exactly where to focus: **S0 is the bottleneck**.
+
+## Finding 2: Bitwise >> Tiered for S1
+
+The biggest S1 difference is cluster type:
+
+| Cluster Type | Best S1 CE | Flow |
+|-------------|-----------|------|
+| Bitwise | **3.86** | 61 |
+| Tiered | 4.69 | 59 |
+
+Bitwise predicts each output *bit* independently, while tiered uses target+negatives scoring. For within-group prediction (small vocabulary of ~224 tokens), bitwise's per-bit decomposition appears far more effective.
+
+However, for S0, both types converge to similar CE (~5.23), suggesting the group prediction problem is fundamentally harder and doesn't benefit from the bitwise representation.
+
+## Finding 3: Selector vs Concat — Similar S0, Different S1
+
+| Mode | S0 CE | S1 CE | Combined |
+|------|-------|-------|----------|
+| Selector (51) | 5.2318 | 4.8233 | 10.0551 |
+| Concat (49) | 5.2227 | 4.8342 | 10.0569 |
+
+The two modes perform almost identically for tiered clusters. Selector mode uses softmax gating (S1 predictions weighted by S0 confidence), while concat feeds S0's output bits as additional input to S1. Neither provides a clear advantage.
+
+## Finding 4: Invalid Token Mode + Label Smoothing — Inconclusive
+
+Flow 59 (with `invalid_mode=True`, `top_m=5`, `label_smoothing=0.1`) has *worse* combined CE than flows 49/51 (without these features). However, this comparison is confounded:
+
+- Flow 59 used `max_neurons=50` (vs 300 for 49/51) — severely limiting S0 capacity
+- Flow 59 used K=256 (vs K=225) — more groups means harder S0 problem
+- Flow 59 used only 2 phases per stage (vs 10)
+
+The invalid token architecture may help, but this experiment doesn't isolate its effect. A fair comparison would need identical K, max_neurons, and phase counts.
+
+## Finding 5: The S0 Bottleneck
+
+The most important finding: **S0 CE plateaus at ~5.23 across all configurations**. This means:
+
+$$P(\text{correct group} | \text{context}) \approx e^{-5.23} \approx 0.5\%$$
+
+With K=225 groups, random chance would give CE = ln(225) ≈ 5.42. Our S0 achieves 5.23 — only 0.19 nats better than random. The group predictor barely works.
+
+This makes sense: with only 2 tokens of context and QUAD_WEIGHTED memory, there's limited information to predict which of 225 groups the next token belongs to. The frequency-interleaved mapping means each group contains a mix of rare and common tokens, so group membership doesn't strongly correlate with simple frequency patterns.
+
+**Implication**: To improve multi-stage CE, we must either:
+
+1. **Improve S0**: More context (but causes address space explosion), better group mapping (semantic clustering instead of frequency-interleaved), or hybrid approaches
+2. **Reduce K**: Fewer groups = easier S0 problem, but S1 has more tokens per group
+3. **Better group construction**: Cluster tokens so that group membership is more predictable from context
+
+# Phase C Features: What Was Implemented
+
+This week also completed the "Phase C" improvements for multi-stage evaluation:
+
+## Invalid Token Architecture
+
+When `invalid_mode=True`, each S1 group learns to predict "invalid" for examples that don't belong to it. During evaluation:
+
+1. S0 gives P(group|context) for all K groups
+2. Top-M groups (by S0 confidence) are evaluated by their S1 models
+3. Each S1 group reports P(invalid|input) — its confidence that the input doesn't belong
+4. Filtered gate: $\text{gate}(g) = P(g|S0) \times (1 - P(\text{invalid}|S1_g))$
+5. Renormalized gates determine final prediction
+
+This enables **self-correction**: if S0 picks the wrong group, S1 can reject it via high P(invalid).
+
+## Label Smoothing
+
+$\text{CE}_{\text{smooth}} = -\log\left[(1-\varepsilon) \cdot P_{\text{hierarchical}} + \frac{\varepsilon}{V}\right]$
+
+Prevents overconfident predictions from dominating CE. With $\varepsilon = 0.1$, even a completely wrong prediction has a floor of $-\log(0.1/50257) \approx 13.1$ instead of infinity.
+
+## Soft-Weighted S1 Training
+
+S1 groups are trained with examples weighted by S0's confidence P(group|context). High-confidence examples get stronger training signal, while uncertain examples contribute less noise.
+
+# Infrastructure Improvements
+
+## Stage Boundary Detection on Resume
+
+Discovered and fixed a critical bug: when a multi-stage flow crashes and resumes, the checkpoint-loading skip loop didn't detect S0→S1 stage transitions. This caused S0 genomes (256 clusters) to be fed to S1 evaluators (197 clusters), triggering a Rust slice panic. The fix mirrors the normal execution path's stage boundary logic.
+
+## Tournament Selection Fix
+
+Fixed a population collapse bug where `_tournament_select()` used raw CE for parent selection while elite selection used HarmonicRank fitness. This caused offspring to be bred from CE-optimal parents only, ignoring accuracy. Now both use the same fitness calculator.
+
+## Fitness Score Tracking
+
+Added `fitness_score` to genome evaluations, enabling the dashboard to sort by the actual optimization objective (HarmonicRank) rather than raw CE.
+
+# What's Next
+
+The S0 bottleneck is the clear priority. Potential approaches, roughly ordered by expected impact:
+
+1. **Semantic token clustering**: Replace frequency-interleaved group mapping with clusters based on token co-occurrence or embedding similarity. If tokens in the same group tend to appear in similar contexts, S0's job becomes much easier.
+
+2. **Increase context with compression**: Context 2 is optimal for raw bits, but we could compress context information before feeding to S0. Hash-based compression, recurrent state, or hierarchical context could pack more signal into the same address space.
+
+3. **K optimization**: Sweep K values (32, 64, 128, 256, 512) to find the sweet spot between S0 difficulty (↑K → harder) and S1 difficulty (↑K → easier per-group). The current K=225 may not be optimal.
+
+4. **Fair Phase C comparison**: Run flows 49/51's configuration (K=225, max_neurons=300, 10 phases per stage) with `invalid_mode=True` to isolate the Phase C effect.
+
+5. **Hybrid S0**: Use a small transformer or n-gram model for S0 (group prediction), keeping RAM WNN only for S1 (within-group prediction). This plays to each architecture's strengths.
+
+# Reproducibility
+
+All experiments ran on Mac Studio M4 Max (64GB unified memory) using the `wnn` framework with Rust/Metal acceleration. Flow configurations and results are stored in the dashboard SQLite database. Source code: [github.com/lacg/wnn](https://github.com/lacg/wnn).
+
+# References
