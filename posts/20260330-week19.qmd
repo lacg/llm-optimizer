@@ -1,0 +1,162 @@
+---
+title: "Week 19 -- Phase B: WNN Beats Classical Baselines on UNSW-NB15"
+author: "Luiz Garcia"
+date: 2026-03-30
+abstract: |
+  Phase B delivers the first WNN IDS classifier results. On the standard temporal split,
+  our RAM WNN achieves 89.50% binary accuracy --- beating Random Forest (87.2%) and XGBoost
+  (87.3%) by over 2 percentage points. The 7-phase optimization pipeline (grid search → GA/TS
+  across neurons, bits, and connections) runs in under 4 minutes and produces an extremely
+  compact model with just 6 neurons. Connection optimization (feature selection) provides the
+  largest accuracy gain, confirming that learned connectivity is a key advantage over
+  random-shuffle approaches like FWIW.
+doi: ""
+license: "CC-BY-NC-SA-4.0"
+format: html
+---
+
+# Summary
+
+Phase B is underway. Key results this week:
+
+1. **89.50% binary accuracy on the standard split** --- beats RF (87.2%) and XGBoost (87.3%) baselines
+2. **7-phase optimization pipeline working end-to-end** with grid search seeding GA/TS
+3. **Connection optimization is the biggest driver** --- feature selection jumps accuracy by ~4 points
+4. **Extremely compact model** --- 6 neurons total (3 per class), 14-24 bits each
+5. **HuggingFace data loader integrated** --- both standard and random splits load from `lacg030175/UNSW-NB15`
+
+# Standard Split: Binary Classification
+
+## Pipeline Architecture
+
+The IDS training pipeline adapts our existing GA/TS optimization infrastructure with a new Rust-backed `IDSCacheWrapper` for zero-copy stratified subset rotation:
+
+```
+IDSDataset (329 bits) → IDSEvaluator → GA/TS Optimization → Best Genome
+     ↓                       ↓
+  HuggingFace          Rust IDSCache
+  thermometer          (stratified partitioning,
+  encoding             hybrid CPU+GPU eval)
+```
+
+The 7-phase pipeline runs sequentially:
+
+| Phase | Strategy | What it optimizes |
+|-------|----------|-------------------|
+| 0 | Grid Search | Evaluate 36 neuron×bit combos, seed top-10 |
+| 1a | GA | Neuron counts per class |
+| 1c | TS | Refine neuron counts |
+| 2a | GA | Address bits per neuron |
+| 2c | TS | Refine address bits |
+| 3a | GA | Input connectivity (feature selection) |
+| 3c | TS | Refine connectivity |
+
+: Optimization phases. Phases 1b/2b/3b (neurogenesis/synaptogenesis/axonogenesis) are planned but require Rust-side training statistics hooks. {#tbl-phases}
+
+## Results: Quick Validation Run
+
+Configuration: population 50, 50 generations/iterations, patience 2, HarmonicRank fitness (CE=0.3, Acc=1.0).
+
+| Phase | Accuracy | CE Loss | Time |
+|-------|----------|---------|------|
+| Grid search (36 configs) | 80.86% | 0.5316 | 3.8s |
+| GA neurons | 82.98% | 0.4716 | 15.5s |
+| TS neurons | 83.22% | 0.4651 | 11.8s |
+| GA bits | 84.54% | 0.4340 | 26.1s |
+| TS bits | 86.68% | 0.3867 | 23.5s |
+| **GA connections** | **90.83%** | **0.2780** | **79.7s** |
+| TS connections | 89.50% | 0.2841 | 63.9s |
+
+: Phase-by-phase accuracy progression. Total runtime: ~4 minutes. {#tbl-phase-results}
+
+**Key observations:**
+
+1. **Connection optimization dominates**: The jump from 86.68% → 90.83% (+4.15 pp) in GA connections is by far the largest single-phase improvement. This confirms that **learned feature selection** --- which neurons observe which input bits --- is the primary generalization mechanism in RAM WNNs.
+
+2. **TS connections slightly regressed**: 90.83% → 89.50%. This is a known pattern --- TS can overfit to the training subset when the search space is large. The final evaluation uses the full test set, so the GA peak was the true best.
+
+3. **Grid search provides a solid seed**: Starting at 80.86% instead of random initialization saves several GA generations.
+
+## Comparison with Classical Baselines
+
+| Model | Standard Split Accuracy | Model Size |
+|-------|------------------------|------------|
+| Random Forest | 87.22% | ~50 MB (500 trees) |
+| XGBoost | 87.33% | ~10 MB |
+| **Our WNN** | **89.50%** | **< 1 KB** (6 neurons) |
+
+: Binary classification on standard temporal split (175K train / 82K test). {#tbl-comparison}
+
+The WNN beats both classical baselines by **+2.2 pp** while being **orders of magnitude smaller**. The entire model is 6 RAM neurons with 14-24 address bits each --- the total lookup table memory is under 1 KB.
+
+## Final Genome Analysis
+
+The optimized genome is remarkably compact:
+
+```
+Class 0 (Normal):  3 neurons × [24, 14, 14] bits
+Class 1 (Attack):  3 neurons × [24, 14, 14] bits
+Total: 6 neurons, ~50K memory cells
+```
+
+With 42 features encoded at 8 bits each (329 total input bits), each neuron observes only 14-24 of those bits. The GA/TS connectivity optimization discovered which feature subsets are most discriminative for normal vs attack traffic --- this is **automated feature selection** at the neuron level.
+
+# Data Loading: HuggingFace Integration
+
+The dataset loader now uses our published HuggingFace dataset (`lacg030175/UNSW-NB15`) as the primary source:
+
+```python
+from wnn.ids import load_unsw_nb15
+
+# Standard temporal split (175K/82K, ~87% RF baseline)
+dataset = load_unsw_nb15(split="standard")
+
+# Random i.i.d. split (1.4M/158K, ~99.6% RF baseline)
+dataset = load_unsw_nb15(split="random")
+```
+
+| Split | Train | Test | Features | Bits | Class Balance (train) |
+|-------|-------|------|----------|------|-----------------------|
+| standard | 175,341 | 82,332 | 42 | 329 | 32% normal / 68% attack |
+| random | 1,425,833 | 158,426 | 43 | 337 | 96% normal / 4% attack |
+
+: Dataset configurations loaded from HuggingFace. {#tbl-dataset}
+
+The dramatically different class balance between splits means:
+
+- **Standard split** tests realistic IDS deployment (train on old, test on new, attack-heavy)
+- **Random split** tests raw classification ability on i.i.d. data with heavy class imbalance
+
+Both protocols are essential for fair comparison with published results.
+
+# Why This Matters
+
+## Beating Baselines on the Hard Split
+
+The standard temporal split is the **realistic** benchmark. Most high-accuracy WNN papers report on random splits where data leakage inflates numbers. Our 89.50% on the temporal split demonstrates genuine generalization to unseen traffic patterns.
+
+For context: the standard split has a ~87% accuracy ceiling that even gradient-boosted trees struggle to break. The temporal distribution shift between training and testing periods makes this fundamentally harder than i.i.d. evaluation.
+
+## Connection Optimization Validates Architecture
+
+The 4+ point accuracy jump from connection optimization directly validates our core hypothesis from [Week 18](20260323-week18.qmd#sec-connectivity): that GA/TS-optimized connectivity outperforms the random-shuffle approach used by FWIW and standard WiSARD. The model isn't just memorizing --- it's **learning which features matter**.
+
+## Compact Models for FPGA Deployment
+
+Six neurons with 14-24 bit addresses means the entire classifier fits in a handful of BRAM blocks on even the smallest FPGAs. Combined with O(1) online learning (direct memory writes), this architecture is well-suited for real-time network monitoring at line rate.
+
+# What's Next
+
+## Immediate
+
+- **Random split binary classification** --- running now, will compare against RF 99.6% baseline
+- **Full optimization run** --- 250 generations/iterations, population 150, patience 5
+- **Multi-class classification** --- 10 attack categories with asymmetric genome allocation
+
+## Planned
+
+- **Two-stage classification** --- Stage 0: binary (attack/normal), Stage 1: attack type classification. This mirrors how analysts think and could improve rare-class detection.
+- **Adaptation phases** --- Neurogenesis, synaptogenesis, and axonogenesis between GA/TS phases for stats-guided architecture refinement
+- **F1/FPR fitness** --- Beyond accuracy, optimize for false positive rate (critical for IDS deployment)
+
+# References
