@@ -46,7 +46,15 @@ Acc = [top-1 accuracy](posts/20251229-week4.qmd#evaluation-metrics).*
 
 ## Phase 2: Network Intrusion Detection (Weeks 16+)
 
-See the [pivot rationale](posts/20260309-week16.qmd) and follow progress in the [Blog](posts/).
+**Phase A complete** --- baselines established, FWIW/BTHOWeN reproduced, [HuggingFace dataset published](https://huggingface.co/datasets/lacg030175/UNSW-NB15).
+
+| Milestone | Result | Details |
+|-----------|--------|---------|
+| [Pivot rationale](posts/20260309-week16.qmd) | O(1) inference + online learning → IDS on FPGA | Week 16 |
+| [Research plan](posts/20260316-week17.qmd) | 4 novel contributions, 5-phase roadmap | Week 17 |
+| [Phase A results](posts/20260323-week18.qmd) | RF 99.6%, FWIW 99.58% reproduced | Week 18 |
+
+See the [Blog](posts/) for weekly updates.
 
 ## Weekly Updates
 
