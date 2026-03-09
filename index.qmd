@@ -28,6 +28,11 @@ Acc = [top-1 accuracy](posts/20251229-week4.qmd#evaluation-metrics).*
 | [Random baseline](posts/20251229-week4.qmd#random-baseline) | 10.82 | 50,257 | 0.002% | Uniform prediction ([methodology](posts/20251229-week4.qmd#random-baseline)) |
 | [Tiered RAMLM](posts/20260105-week5.qmd#best-tiered-results) (50K clusters) | ~10.20 | ~27,000 | ~4.9% | 5-tier, EMPTY=0.0 ([results](posts/20260105-week5.qmd#best-tiered-results)) |
 | [BitwiseRAMLM](posts/20260209-week10.qmd#optimization-progression) (16 clusters) | ~9.11 | ~9,000 | ~6.4% | Per-bit prediction ([results](posts/20260209-week10.qmd#optimization-progression)) |
+| [Multi-Stage K=512](posts/20260309-week15.qmd) selector | 8.52 | 5,023 | 10.4% | Semantic clustering, ctx=[2,3] |
+| [WNN + KN bigram](posts/20260309-week15.qmd#kn-bigram-interpolation) ($\lambda_b$=0.9) | **5.95** | **384** | 19.3% | 90% KN bigram + 10% uni + 0% model |
+| | | | | |
+| KN Bigram baseline | 6.02 | 411 | 19.8% | [Measured](posts/20260309-week15.qmd#kneser-ney-baselines) |
+| KN Trigram baseline | 5.92 | 373 | 17.8% | [Measured](posts/20260309-week15.qmd#kneser-ney-baselines) |
 | | | | | |
 | **Target: [GPT-2](posts/20251229-week4.qmd#gpt-2-baselines)** | | | | [@radford2019language] |
 | GPT-2 Small (124M) | 3.38 | 29.41 | -- | Zero-shot |

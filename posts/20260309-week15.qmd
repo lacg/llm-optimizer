@@ -1,0 +1,228 @@
+---
+title: "Weeks 14--15 -- Interpolation, Baselines, and the Limits of RAM WNNs for Language Modeling"
+author: "Luiz Garcia"
+date: 2026-03-09
+abstract: |
+  Implemented Jelinek-Mercer interpolation with unigram and Kneser-Ney bigram
+  distributions. The WNN model with K=512 semantic_bitwise clustering achieves
+  CE=8.52 on its own, but mixing with a KN bigram yields CE=5.95 --- beating
+  the standalone KN bigram (CE=6.02). However, the optimal mixture assigns
+  only 0--10% weight to the WNN, revealing that the model barely contributes
+  beyond classical n-gram statistics. We measure exact KN baselines (bigram
+  CE=6.02, trigram CE=5.92) and analyze why RAM WNNs are structurally
+  disadvantaged for this task. This motivates a pivot toward domains where
+  the architecture's O(1) inference and online learning strengths are assets
+  rather than liabilities.
+doi: ""
+license: "CC-BY-NC-SA-4.0"
+format: html
+---
+
+# Summary
+
+These two weeks brought the most important experimental insight of the project: **the RAM WNN language model is, in effect, a crude bigram model** --- and a KN-smoothed bigram handily outperforms it.
+
+We implemented Jelinek-Mercer smoothing:
+
+$$P_{\text{final}}(t|\text{ctx}) = w_m \cdot P_{\text{model}}(t) + \lambda_u \cdot P_{\text{unigram}}(t) + \lambda_b \cdot P_{\text{KN bigram}}(t|\text{prev})$$
+
+where $w_m = 1 - \lambda_u - \lambda_b$, and swept $\lambda_u, \lambda_b \in [0, 1]$ over a 2D grid. The results are illuminating but sobering.
+
+# K=512 Semantic Bitwise Clustering
+
+Building on week 13's finding that S0 was the bottleneck, we moved from K=225 with frequency-interleaved mapping to **K=512 with semantic_bitwise clustering**. Semantic clustering groups tokens that tend to appear in similar contexts (based on co-occurrence similarity), making S0's group prediction task easier.
+
+With per-stage context sizes (S0: ctx=2, S1: ctx=3) and full 10-phase optimization:
+
+| Metric | K=225 freq-interleaved | K=512 semantic_bitwise |
+|--------|----------------------|----------------------|
+| Combined CE | 9.12 | **8.52** |
+| S0 CE | 5.23 | **4.50** |
+| S1 CE | 3.89 | **4.02** |
+| Accuracy | 9.24% | **10.42%** |
+
+S0 improved dramatically (5.23 → 4.50) because semantic clustering means group membership correlates better with context. S1 got slightly worse (3.89 → 4.02) because groups went from ~224 to ~99 tokens, giving the same number of tokens but with more groups and more diverse within-group vocabularies.
+
+# Unigram Interpolation (Jelinek-Mercer Smoothing)
+
+First we implemented single-distribution interpolation:
+
+$$P_{\text{final}}(t) = (1-\lambda) \cdot P_{\text{model}}(t) + \lambda \cdot P_{\text{unigram}}(t)$$
+
+## Lambda Sweep Results (Flow 94, 14 values)
+
+| $\lambda$ | CE | Accuracy |
+|-----------|------|---------|
+| 0.0 | 8.52 | 10.42% |
+| 0.1 | 8.03 | 12.60% |
+| 0.2 | 7.65 | 16.10% |
+| **0.3** | **7.54** | **16.18%** |
+| 0.5 | 7.39 | 13.37% |
+| **0.8** | **7.35** | 10.79% |
+| 0.9 | 7.38 | 7.91% |
+| 1.0 | 7.49 | 4.89% |
+
+Best CE at $\lambda=0.8$ (80% unigram, 20% model). Best accuracy at $\lambda=0.3$. The model's contribution is modest --- at the CE-optimal point, 80% of the mixture is just token frequencies.
+
+### Accuracy Bug Fix
+
+During the sweep, we discovered that accuracy was incorrectly computed --- it always used the pure model's argmax regardless of lambda. The fix required computing the full interpolated $P_{\text{final}}(t)$ for all candidate tokens and finding the new argmax. This involved:
+
+1. **Rust**: For each eval example, recompute per-token softmax from neuron scores, apply the interpolation formula, and check the unigram argmax against the true-group tokens
+2. **Python**: A missing `"selector"` entry in the worker's `mode_map` was silently routing all SELECTOR flows through the wrong code path
+
+Both bugs were fixed, and the accuracy numbers became consistent (e.g., $\lambda=1.0$ correctly shows unigram accuracy = 4.89%).
+
+# Kneser-Ney Baselines
+
+The unigram interpolation raised a question: *how good are proper n-gram baselines?* Our earlier comparison used add-1 (Laplace) smoothed bigrams, which scored CE=8.15 --- worse than the unigram (CE=7.49). This seemed wrong.
+
+We implemented Kneser-Ney smoothed n-gram models from scratch:
+
+$$P_{\text{KN}}(w|w') = \frac{\max(c(w',w) - d, 0)}{c(w')} + \lambda(w') \cdot P_{\text{cont}}(w)$$
+
+where $d = n_1/(n_1 + 2n_2)$ is the discount, $P_{\text{cont}}(w) = |\{w': c(w',w) > 0\}| / |\text{unique bigrams}|$ is the continuation probability, and $\lambda(w') = d \cdot N_{1+}(w',\bullet) / c(w')$ is the interpolation weight.
+
+## Measured Results
+
+| Model | CE | PPL | Accuracy |
+|-------|------|------|---------|
+| Unigram (add-1) | 7.49 | 1,784 | 4.89% |
+| Bigram (add-1) | 8.15 | 3,479 | 19.77% |
+| **KN Bigram** | **6.02** | **411** | **19.77%** |
+| **KN Trigram** | **5.92** | **373** | **17.78%** |
+| GPT-2 Small (124M) | ~3.5 | ~29 | ~37% |
+
+: Measured baselines on WikiText-2 test set (GPT-2 tokenizer, V=50,257). {#tbl-baselines}
+
+**Key finding**: KN bigram (CE=6.02) is **2.13 nats better** than add-1 bigram (CE=8.15). Proper smoothing matters enormously with V=50,257 --- add-1 spreads far too much mass to the 50K unseen tokens.
+
+**The WNN model (CE=8.52) is worse than even the add-1 bigram for accuracy (10.42% vs 19.77%), and much worse than KN bigram for CE.** This was the first major warning sign.
+
+# KN Bigram Interpolation
+
+Given that the KN bigram massively outperforms our model, we implemented full-stack bigram interpolation:
+
+$$P_{\text{final}}(t|\text{ctx}) = w_m \cdot P_{\text{model}}(t) + \lambda_u \cdot P_{\text{unigram}}(t) + \lambda_b \cdot P_{\text{KN}}(t|\text{prev})$$
+
+## Implementation
+
+The KN bigram was computed in Rust during cache construction from the training tokens, using a decomposed representation for efficiency:
+
+$$P_{\text{KN}}(t|\text{prev}) = \underbrace{\frac{\max(c(\text{prev},t) - d, 0)}{c(\text{prev})}}_{\text{sparse first term}} + \underbrace{\lambda(\text{prev})}_{\text{backoff weight}} \cdot \underbrace{P_{\text{cont}}(t)}_{\text{continuation prob}}$$
+
+- `kn_first_term`: `Vec<HashMap<u32, f64>>` --- only observed pairs (~707K entries)
+- `kn_lambda`: `Vec<f64>` --- backoff weight per context token (50K entries)
+- `kn_pcont`: `Vec<f64>` --- continuation probability per token (50K entries)
+
+Total memory: ~12MB. Computed in <1s during cache construction.
+
+## 1D Bigram Sweep (Flow 95)
+
+| $\lambda_b$ | CE | Accuracy |
+|-------------|------|---------|
+| 0.0 | 8.52 | 10.42% |
+| 0.1 | 7.07 | **21.25%** |
+| 0.3 | 6.54 | 20.55% |
+| 0.5 | 6.27 | 19.76% |
+| 0.7 | 6.10 | 19.47% |
+| **0.9** | **5.99** | 19.33% |
+| 1.0 | 6.03 | 19.27% |
+
+: Bigram lambda sweep with $\lambda_u = 0$. Best CE at $\lambda_b = 0.9$, beating standalone KN bigram (6.02). {#tbl-bigram}
+
+At $\lambda_b = 0.9$, the WNN model contributes 10% weight and improves CE from 6.03 (pure KN bigram) to 5.99 --- a 0.04 nat improvement. At $\lambda_b = 1.0$, CE=6.03 matches the standalone KN bigram, validating the implementation.
+
+## 2D Sweep (Flow 96)
+
+| $\lambda_u$ | $\lambda_b$ | CE | Accuracy |
+|-------------|-------------|------|---------|
+| 0.0 | 0.0 | 8.52 | 10.42% |
+| 0.0 | 0.9 | 5.99 | 19.33% |
+| **0.1** | **0.9** | **5.95** | **19.29%** |
+| 0.2 | 0.8 | 5.97 | 19.32% |
+| 0.3 | 0.7 | 6.00 | 19.24% |
+| 0.0 | 0.1 | 7.07 | **21.25%** |
+
+: 2D lambda sweep. Best CE at $\lambda_u=0.1, \lambda_b=0.9$ (10% unigram + 90% bigram + 0% model). Best accuracy at $\lambda_b=0.1$ (10% bigram + 90% model). {#tbl-2d}
+
+The optimal mixture allocates **0% to the model, 10% to unigram, 90% to KN bigram** for CE=5.95. Adding 10% unigram provides better smoothing for rare tokens than the bigram alone.
+
+# Full Comparison Table
+
+| Model | CE | Accuracy | Notes |
+|-------|------|---------|-------|
+| Unigram (add-1) | 7.49 | 4.89% | Zero context |
+| KN Bigram | 6.02 | 19.77% | 1 token context, KN smoothed |
+| KN Trigram | 5.92 | 17.78% | 2 tokens context, KN smoothed |
+| | | | |
+| WNN K512 (pure) | 8.52 | 10.42% | 2--3 tokens context, RAM lookup |
+| WNN + unigram ($\lambda_u$=0.8) | 7.35 | 10.79% | 80% unigram, 20% model |
+| WNN + KN bigram ($\lambda_b$=0.9) | 5.99 | 19.33% | 90% bigram, 10% model |
+| **WNN + uni+bi** (0.1/0.9) | **5.95** | 19.29% | 10% uni + 90% bi + 0% model |
+| WNN + bigram ($\lambda_b$=0.1) | 7.07 | **21.25%** | Best accuracy: 10% bi + 90% model |
+| | | | |
+| GPT-2 Small (124M) | ~3.5 | ~37% | Transformer baseline |
+
+: Complete WikiText-2 results as of week 15. {#tbl-full}
+
+# Analysis: Why the WNN Model Barely Contributes
+
+The RAM WNN with 2--3 tokens of context is, structurally, a bigram/trigram model. It sees the same information as a KN bigram. But it processes that information far less efficiently:
+
+## Information Density Gap
+
+A KN bigram entry `c(prev, cur) = 847` encodes ~10 bits of information (the count). A RAM neuron at the same address stores **1 bit** (TRUE or FALSE). Even with 3 neurons per cluster, each seeing different subsets of the input bits, the RAM architecture stores only 3 bits of information for any given address --- orders of magnitude less than a simple count table.
+
+## Address Space Sparsity
+
+With context size 2 and 16-bit token encoding, the input space is $2^{32} \approx 4 \times 10^9$ possible addresses. With 2.4M training examples, only ~0.06% of addresses are visited. Most neurons return EMPTY (0.25 under QUAD_WEIGHTED), providing almost no discriminative signal.
+
+A KN bigram, by contrast, stores counts for the 707K observed bigram types directly, with sophisticated continuation-count backoff for unseen pairs.
+
+## Output Decomposition Tax
+
+The model predicts 9 bits (S0 group) then 7 bits (S1 within-group) via independent per-bit probabilities. This bit-independence assumption loses information that the KN bigram retains --- the actual joint probability of seeing token $t$ after token $\text{prev}$.
+
+## The Structural Mismatch
+
+The fundamental issue is that **language modeling requires precise probability estimation over a huge vocabulary**, which plays to the strength of count-based models (infinite precision per entry) and neural networks (learned dense representations). RAM WNNs, with their binary outputs and exponential address spaces, are structurally disadvantaged for this specific task.
+
+# Positive Takeaways
+
+Despite the sobering comparison, several findings are genuinely valuable:
+
+1. **The model captures *something* the bigram doesn't**: At $\lambda_b = 0.9$, the 10% model weight improves CE from 6.03 to 5.99. Small, but real. The WNN's learned connectivity finds patterns invisible to simple bigram counts.
+
+2. **Semantic clustering works**: K=512 semantic_bitwise improved S0 CE from 5.23 to 4.50, a major gain.
+
+3. **The full-stack Rust+Metal pipeline is proven**: Sub-second KN bigram computation for 2.4M tokens, GPU-accelerated evaluation of 512 groups with selector mode, and parallel lambda sweeps all work correctly.
+
+4. **The accuracy gains are substantial**: WNN + 10% bigram achieves 21.25% accuracy, more than doubling the pure model's 10.42%. The model is learning useful group-level predictions that complement bigram statistics.
+
+# What's Next
+
+The key question is whether to continue pushing language modeling or pivot to domains where the RAM WNN architecture has structural advantages. We are considering:
+
+## Continue LM (diminishing returns)
+
+- **Trigram interpolation**: KN trigram (CE=5.92) is only 0.07 nats above our best mixture. Implementation is straightforward but this is riding on n-gram statistics, not improving the WNN.
+- **Recurrent state** (`RAMRecurrentNetwork`): Compressed history state could break the Markov assumption, but the search space becomes enormous.
+- **Multi-resolution context**: Different neurons looking at different time scales (skip-grams) via connectivity optimization.
+
+## Pivot to Advantaged Domains (high potential)
+
+RAM WNNs have genuine structural advantages for:
+
+- **O(1) inference**: RAM lookup is a single memory read, no matrix multiplications
+- **O(1) online learning**: A single memory write updates the model, no gradient computation
+- **Binary native**: Problems with naturally binary or categorical inputs
+- **FPGA/embedded deployment**: Lookup tables map directly to hardware
+
+Promising domains include tabular data classification, temporal pattern recognition (network packets, time series), streaming anomaly detection, and edge AI. These play to the architecture's strengths rather than fighting its limitations.
+
+# Reproducibility
+
+All experiments ran on Mac Studio M4 Max (64GB unified memory). Flows 94--96 in the dashboard. KN baselines computed via `compute_kn_baselines.py`. Source code: [github.com/lacg/wnn](https://github.com/lacg/wnn).
+
+# References
