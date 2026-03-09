@@ -2,21 +2,25 @@
 title: "Home"
 ---
 
-# Weightless Neural Networks for Language Modeling
+# Weightless Neural Networks --- From Language Modeling to Network Security
 
-This research explores whether **Weightless Neural Networks** (WNNs) --- specifically RAM-based neurons --- can serve as a foundation for language modeling, traditionally dominated by weighted transformer architectures.
+This research explores **Weightless Neural Networks** (WNNs) --- specifically RAM-based neurons --- as a foundation for machine learning tasks that demand O(1) inference, sub-kilobyte models, and real-time adaptability.
 
 ## Current Focus
 
-Building a complete RAM-based language model pipeline:
+**[Network Intrusion Detection on FPGA](posts/20260309-week16.qmd)** --- exploiting the WNN's structural advantages for line-rate packet classification:
 
-- **[BitwiseRAMLM](posts/20260209-week10.qmd#bitwiseramlm)**: 16-cluster per-bit output architecture with log-product token reconstruction
-- **[Connectivity optimization](optimization-methods.qmd#phased-search)**: [Genetic Algorithm](optimization-methods.qmd#genetic-algorithm) [@holland1975adaptation; @goldberg1989genetic] + [Tabu Search](optimization-methods.qmd#tabu-search) [@glover1989tabu1; @glover1990tabu2] over neuron connectivity patterns
+- **O(1) inference**: RAM lookup in a single clock cycle (~5ns on FPGA) --- classify *every* packet at 100Gbps
+- **O(1) online learning**: Single memory write updates the model --- adapt to new threats in real-time
+- **Sub-kilobyte models**: 192 bytes demonstrated [@santiago2020fpga] --- fits in FPGA block RAM
+- **[Connectivity optimization](optimization-methods.qmd#phased-search)**: [GA](optimization-methods.qmd#genetic-algorithm) [@holland1975adaptation; @goldberg1989genetic] + [TS](optimization-methods.qmd#tabu-search) [@glover1989tabu1; @glover1990tabu2] over neuron connectivity patterns
 - **[Rust+Metal acceleration](posts/20251229-week4.qmd#rustmetal-accelerator)**: Full pipeline on Apple Silicon (16 CPU + 40 GPU cores)
-- **[Gating mechanisms](posts/20260209-week10.qmd#plug-and-play-gating)**: Content-based filtering inspired by DeepSeek's Engram [@deepseek2026engram] architecture
-- **[Baldwin effect](posts/20260215-week11.qmd)**: Developmental adaptation (synaptogenesis, neurogenesis, apoptosis) embedded in the evolutionary evaluation loop [@baldwin1896new; @hinton1987learning]
 
-## Key Results
+Secondary direction: **Edge AI / TinyML** for battery-powered sensors (predictive maintenance, HAR) [@susskind2021nanoml].
+
+## Phase 1: Language Modeling (Weeks 1--15)
+
+We spent 15 weeks building a complete RAM-based language model on WikiText-2. The honest conclusion: **RAM WNNs are structurally disadvantaged for precise probability estimation over large vocabularies** ([full analysis](posts/20260309-week15.qmd#analysis-why-the-wnn-model-barely-contributes)). The optimal interpolation mixture assigns 0% weight to the WNN model.
 
 *All models evaluated on WikiText-2 with GPT-2 tokenizer (50,257 vocab).
 CE = [Cross-Entropy](posts/20251229-week4.qmd#evaluation-metrics),
@@ -39,6 +43,10 @@ Acc = [top-1 accuracy](posts/20251229-week4.qmd#evaluation-metrics).*
 | GPT-2 Medium (355M) | 3.12 | 22.76 | -- | Zero-shot |
 | GPT-2 Large (774M) | 2.99 | 19.93 | -- | Zero-shot |
 | GPT-2 XL (1.5B) | 2.91 | 18.34 | -- | Zero-shot |
+
+## Phase 2: Network Intrusion Detection (Weeks 16+)
+
+See the [pivot rationale](posts/20260309-week16.qmd) and follow progress in the [Blog](posts/).
 
 ## Weekly Updates
 
