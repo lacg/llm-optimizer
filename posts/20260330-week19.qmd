@@ -101,6 +101,47 @@ Total: 6 neurons, ~50K memory cells
 
 With 42 features encoded at 8 bits each (329 total input bits), each neuron observes only 14-24 of those bits. The GA/TS connectivity optimization discovered which feature subsets are most discriminative for normal vs attack traffic --- this is **automated feature selection** at the neuron level.
 
+# Random Split: Binary Classification
+
+## Why This Split Is Easier
+
+As established in [Week 18](20260323-week18.qmd), the random split (1.4M train / 158K test) has near-zero distribution shift and residual data leakage from near-duplicate flows. The RF baseline is 99.6% --- the classes are highly separable in i.i.d. conditions.
+
+## Results
+
+Same pipeline, same quick settings (population 50, 50 gens/iters, patience 2).
+
+| Phase | Standard Split | Random Split |
+|-------|---------------|-------------|
+| Grid search | 80.86% | 98.88% |
+| GA neurons | 82.98% | 98.88% |
+| TS neurons | 83.22% | 98.88% |
+| GA bits | 84.54% | 98.87% |
+| TS bits | 86.68% | 98.87% |
+| GA connections | 90.83% | 98.89% |
+| TS connections | 89.50% | 98.89% |
+| **Final eval** | **89.50%** | **98.88%** |
+
+: Phase-by-phase comparison across evaluation protocols. {#tbl-both-splits}
+
+**Key finding**: On the random split, **grid search alone achieves 98.88%** --- the full 7-phase optimization adds essentially nothing (+0.01 pp). This confirms that optimization headroom is split-dependent:
+
+- **Standard split**: Connections phase adds +4.15 pp. Learned feature selection is critical when temporal distribution shift exists.
+- **Random split**: Even random connectivity works. The data is separable enough that a basic 15-neuron, 12-bit model hits near-ceiling accuracy.
+
+## Comparison with All Baselines
+
+| Model | Standard Split | Random Split |
+|-------|---------------|-------------|
+| Random Forest | 87.22% | **99.60%** |
+| XGBoost | 87.33% | 99.43% |
+| FWIW WNN (BackpropWiSARD) | --- | 99.58% |
+| **Our WNN (quick run)** | **89.50%** | 98.88% |
+
+: Binary accuracy across all models and evaluation protocols. {#tbl-all-baselines}
+
+On the standard split, our WNN leads by +2.2 pp. On the random split, we trail RF by 0.7 pp and FWIW by 0.7 pp --- but our quick run uses only 50 generations with population 50. FWIW uses 10 epochs of gradient descent with Adam optimizer. A full optimization run (250 gens, population 150) may close this gap.
+
 # Data Loading: HuggingFace Integration
 
 The dataset loader now uses our published HuggingFace dataset (`lacg030175/UNSW-NB15`) as the primary source:
@@ -149,14 +190,14 @@ Six neurons with 14-24 bit addresses means the entire classifier fits in a handf
 
 ## Immediate
 
-- **Random split binary classification** --- running now, will compare against RF 99.6% baseline
-- **Full optimization run** --- 250 generations/iterations, population 150, patience 5
+- **Full optimization run** --- 250 generations/iterations, population 150, patience 5 on standard split
 - **Multi-class classification** --- 10 attack categories with asymmetric genome allocation
+- **Two-stage classification** --- Stage 0: binary (attack/normal), Stage 1: attack type classification only on flagged traffic. This mirrors operational triage and could improve rare-class detection (e.g. Worms with only 44 training examples)
 
 ## Planned
 
-- **Two-stage classification** --- Stage 0: binary (attack/normal), Stage 1: attack type classification. This mirrors how analysts think and could improve rare-class detection.
 - **Adaptation phases** --- Neurogenesis, synaptogenesis, and axonogenesis between GA/TS phases for stats-guided architecture refinement
 - **F1/FPR fitness** --- Beyond accuracy, optimize for false positive rate (critical for IDS deployment)
+- **Cross-dataset generalization** --- Train on UNSW-NB15, test on CICIDS2017
 
 # References
