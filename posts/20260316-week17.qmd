@@ -171,6 +171,20 @@ Matching RF/XGBoost baselines on F1-Macro ($\geq$ 87%) and FPR ($\leq$ 12%) woul
 | Cross-dataset generalization | $\leq$ 5% degradation | Better than reported 8% gap |
 | Online adaptation (concept drift) | $\leq$ 5% accuracy loss over 30 days | Novel benchmark |
 
+::: {.callout-note}
+## Research FPR vs Production FPR
+
+Our FPR targets above (8--12%) are **research metrics** on a balanced test set. Production deployment is a fundamentally different regime:
+
+- In production, 95--99% of traffic is normal. A 10% FPR on 1M flows/day = **~100,000 false alerts/day** --- enough to bury any SOC team.
+- Industry guidance: $<$1% FPR is "good", $<$0.1% is "excellent" for production viability.
+- **Alert fatigue** is the #1 operational killer of IDS tools --- teams literally turn off noisy detectors, creating blind spots for real attacks.
+
+This is precisely why production IDS uses **cascading architectures**: a fast first-tier (our WNN, 5ns inference) flags ~5% of suspicious traffic, then a heavyweight second-tier (deep model) re-examines only the flagged subset. The WNN's value is not standalone FPR but **throughput $\times$ recall at the first tier** --- inspecting *every* packet at line rate rather than sampling 1 in 100.
+
+Our architecture roadmap (Phase D) targets this cascading design: WNN at wire speed on FPGA $\rightarrow$ deep classifier on CPU/GPU for flagged flows only.
+:::
+
 ## Efficiency Goals
 
 | Metric | Target | Basis |
