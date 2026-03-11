@@ -129,12 +129,44 @@ We will train on UNSW-NB15 and evaluate on CICIDS2017 (and vice versa), measurin
 
 # Benchmarks to Beat
 
-## Accuracy Goals
+::: {.callout-important}
+## Standard vs Random Split
+
+The evaluation protocol matters enormously. The standard temporal split (175K train / 82K test) is **12 points harder** than random 90/10 splits due to temporal shift, class distribution differences, and 30% duplicate leakage in the full dataset. All our primary goals target the **standard split** --- the realistic deployment scenario. See [Week 18](20260323-week18.qmd) for the full analysis.
+:::
+
+## Standard Split Goals (Primary --- Realistic Deployment)
+
+Literature baselines on the standard temporal split (from [@zoghi2024ids; @springeropen2020unswnb15; @mdpi2024enhanced]):
+
+| Method | Accuracy | F1-Macro | FPR | Source |
+|--------|----------|----------|-----|--------|
+| Random Forest | 87.2% | ~87% | ~12% | Our reproduction (Week 18) |
+| XGBoost | 87.3% | ~87% | ~12% | Our reproduction (Week 18) |
+| SVM | ~86% | ~85% | ~15% | [@springeropen2020unswnb15] |
+| DNN (sequential) | ~88% | ~87% | ~10% | [@zoghi2024ids] |
+| BiLSTM (deep learning) | ~89% | ~89% | ~8% | [@mdpi2024enhanced] |
+
+: Literature baselines on UNSW-NB15 standard split. {#tbl-standard-baselines}
+
+Our WNN targets for the standard split:
+
+| Metric | Target | Stretch Goal | Basis |
+|--------|--------|--------------|-------|
+| **Accuracy** | $\geq$ 88% | $\geq$ 90% | Beat RF (87.2%) and XGBoost (87.3%) |
+| **F1-Macro** | $\geq$ 87% | $\geq$ 89% | Match or beat classical ML (~87%) |
+| **FPR** | $\leq$ 12% | $\leq$ 8% | Match classical ML; stretch = match BiLSTM |
+| Multi-class (10 classes) | $\geq$ 85% (F1) | $\geq$ 88% (F1) | Novel benchmark (no WNN prior art) |
+
+: Our WNN accuracy goals on the standard split. {#tbl-our-goals}
+
+Matching RF/XGBoost baselines on F1-Macro ($\geq$ 87%) and FPR ($\leq$ 12%) would validate the architecture for IDS. **Beating them would be publishable** --- no prior WNN work reports results on the standard split.
+
+## Random Split Goals (Secondary --- FWIW Comparison)
 
 | Task | Target | Basis |
 |------|--------|-------|
-| Binary (UNSW-NB15) | $\geq$ 98.5% | Match FWIW [@susskind2023fwiw] |
-| Multi-class (UNSW-NB15, 10 classes) | $\geq$ 95% | Novel benchmark |
+| Binary (UNSW-NB15, random 90/10) | $\geq$ 98.5% | Match FWIW [@susskind2023fwiw] |
 | Binary (CICIDS2017) | $\geq$ 99% | Match Random Forest |
 | Cross-dataset generalization | $\leq$ 5% degradation | Better than reported 8% gap |
 | Online adaptation (concept drift) | $\leq$ 5% accuracy loss over 30 days | Novel benchmark |
