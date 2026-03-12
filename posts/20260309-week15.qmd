@@ -1,5 +1,5 @@
 ---
-title: "Weeks 14--15 -- Interpolation, Baselines, and the Limits of RAM WNNs for Language Modeling"
+title: "Weeks 14--16 -- Interpolation, Baselines, Limits of RAM WNNs, and the Pivot to IDS"
 author: "Luiz Garcia"
 date: 2026-03-09
 abstract: |
@@ -7,12 +7,13 @@ abstract: |
   distributions. The WNN model with K=512 semantic_bitwise clustering achieves
   CE=8.52 on its own, but mixing with a KN bigram yields CE=5.95 --- beating
   the standalone KN bigram (CE=6.02). However, the optimal mixture assigns
-  only 0--10% weight to the WNN, revealing that the model barely contributes
+  0% weight to the WNN, revealing that the model barely contributes
   beyond classical n-gram statistics. We measure exact KN baselines (bigram
   CE=6.02, trigram CE=5.92) and analyze why RAM WNNs are structurally
-  disadvantaged for this task. This motivates a pivot toward domains where
-  the architecture's O(1) inference and online learning strengths are assets
-  rather than liabilities.
+  disadvantaged for this task. This motivates a pivot toward **network intrusion
+  detection on FPGA** --- a domain where the architecture's O(1) inference,
+  O(1) online learning, and sub-kilobyte models are genuine competitive
+  advantages rather than liabilities.
 doi: ""
 license: "CC-BY-NC-SA-4.0"
 format: html
@@ -20,7 +21,7 @@ format: html
 
 # Summary
 
-These two weeks brought the most important experimental insight of the project: **the RAM WNN language model is, in effect, a crude bigram model** --- and a KN-smoothed bigram handily outperforms it.
+These weeks brought the most important experimental insight and strategic decision of the project: **the RAM WNN language model is, in effect, a crude bigram model** --- and a KN-smoothed bigram handily outperforms it. Rather than continuing to fight the architecture's limitations, we analyze which domains play to its strengths and pivot to **network intrusion detection**.
 
 We implemented Jelinek-Mercer smoothing:
 
@@ -200,26 +201,55 @@ Despite the sobering comparison, several findings are genuinely valuable:
 
 4. **The accuracy gains are substantial**: WNN + 10% bigram achieves 21.25% accuracy, more than doubling the pure model's 10.42%. The model is learning useful group-level predictions that complement bigram statistics.
 
-# What's Next
+# Pivot: From Language Modeling to Network Intrusion Detection
 
-The key question is whether to continue pushing language modeling or pivot to domains where the RAM WNN architecture has structural advantages. We are considering:
+The honest conclusion after 15 weeks: **the RAM WNN architecture is structurally disadvantaged for precise probability estimation over large vocabularies**. Rather than continuing to fight this limitation, we step back and ask: **where should RAM WNNs actually be used?**
 
-## Continue LM (diminishing returns)
+## Where RAM WNNs Have Structural Advantages
 
-- **Trigram interpolation**: KN trigram (CE=5.92) is only 0.07 nats above our best mixture. Implementation is straightforward but this is riding on n-gram statistics, not improving the WNN.
-- **Recurrent state** (`RAMRecurrentNetwork`): Compressed history state could break the Markov assumption, but the search space becomes enormous.
-- **Multi-resolution context**: Different neurons looking at different time scales (skip-grams) via connectivity optimization.
-
-## Pivot to Advantaged Domains (high potential)
-
-RAM WNNs have genuine structural advantages for:
+RAM WNNs compete not on accuracy but on the **inference-cost $\times$ deployment-scale product**:
 
 - **O(1) inference**: RAM lookup is a single memory read, no matrix multiplications
 - **O(1) online learning**: A single memory write updates the model, no gradient computation
 - **Binary native**: Problems with naturally binary or categorical inputs
 - **FPGA/embedded deployment**: Lookup tables map directly to hardware
 
-Promising domains include tabular data classification, temporal pattern recognition (network packets, time series), streaming anomaly detection, and edge AI. These play to the architecture's strengths rather than fighting its limitations.
+## Candidate Domain Ranking
+
+| Rank | Domain | Market size | Capability gap | Fit |
+|------|--------|------------|----------------|-----|
+| 1 | **Network IDS on FPGA** | \$20B+, 12%/yr | Line-rate ML (unique) | Perfect |
+| 2 | **Edge AI / TinyML** | \$5B+, 25%/yr | Battery-powered ML | Excellent |
+| 3 | Tabular classification | \$2B+ | Sub-microsecond inference | Good |
+| 4 | HEP triggers | Niche | Already served | Good |
+
+: Commercial viability ranking. {#tbl-ranking}
+
+## Decision: Network Intrusion Detection on FPGA
+
+We are pivoting to **network intrusion detection** as the primary application domain. The rationale:
+
+1. **Capability gap, not just efficiency**: Most IDS systems must sample packets (inspect 1 in 100 at high throughput). A WNN that classifies *every packet* at line rate is a genuinely new capability.
+
+2. **Industry already uses FPGAs**: Network appliances from Xilinx/AMD and Intel Altera are standard. WNN lookup tables map directly to FPGA block RAM.
+
+3. **Online learning is uniquely valuable**: New attack patterns emerge daily. A WNN can update its model with a single memory write --- no gradient computation, no retraining pipeline.
+
+4. **Training cost is well-amortized**: Train once per threat model update (weekly/monthly), deploy to hundreds or thousands of network appliances.
+
+5. **Natural cascading architecture**: WNN at line rate flags suspicious packets ($\sim$5% of traffic) $\rightarrow$ traditional deep classifier inspects only the flagged subset.
+
+## Infrastructure Reuse
+
+~80% of our existing Rust+Metal pipeline transfers directly: RAM neuron evaluation, GA/TS connectivity optimization, per-cluster evaluators, dashboard, and experiment tracking. The main new work is dataset loading, feature encoding, and IDS-specific metrics.
+
+## Retrospective: What Language Modeling Taught Us
+
+Fifteen weeks of language modeling were not wasted:
+
+- **Rust+Metal acceleration pipeline**: Sub-second training and evaluation on Apple Silicon. Directly reusable.
+- **GA+TS connectivity optimization**: The phased search (coarse GA $\rightarrow$ fine TS) is domain-agnostic.
+- **Honest evaluation methodology**: KN baselines forced us to confront the model's true capabilities. We will apply the same rigor to IDS benchmarks.
 
 # Reproducibility
 

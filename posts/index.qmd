@@ -1,6 +1,6 @@
 ---
 title: "Blog"
-description: "Weekly research updates on Weightless Neural Networks for Language Modeling"
+description: "Weekly research updates on Weightless Neural Networks"
 listing:
   contents: "*.qmd"
   sort: "date desc"
