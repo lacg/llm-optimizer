@@ -1,7 +1,7 @@
 ---
-title: "Week 16 -- IDS: Literature, Baselines, and WNN Beats Classical ML"
+title: "Week 16 -- IDS: Baselines, First Results, and Honest Evaluation"
 author: "Luiz Garcia"
-date: 2026-03-12
+date: 2026-03-15
 abstract: |
   With the pivot to network intrusion detection decided, we execute the full
   Phase A--B plan in rapid succession: survey the IDS landscape (datasets,
@@ -14,6 +14,12 @@ abstract: |
   model. Connection optimization (learned feature selection) provides the largest
   single-phase accuracy gain (+4.15 pp), confirming that GA/TS-optimized
   connectivity is a key advantage over random-shuffle approaches like FWIW.
+  **Update (March 15):** We discover a threshold data leakage bug that inflated
+  our early F1 scores and implement a four-threshold validation protocol to
+  provide fully honest evaluation. We also analyze common methodology pitfalls in
+  the IDS literature --- from StandardScaler leakage to implicit thresholds ---
+  and show that our binarization-based pipeline is inherently immune to several
+  of them.
 doi: ""
 license: "CC-BY-NC-SA-4.0"
 format: html
@@ -286,8 +292,115 @@ The 4+ point accuracy jump from connection optimization directly validates our c
 
 Six neurons with 14-24 bit addresses means the entire classifier fits in a handful of BRAM blocks on even the smallest FPGAs. Combined with O(1) online learning, this architecture is well-suited for real-time network monitoring at line rate.
 
+# Threshold Leakage and Honest Evaluation {#sec-threshold}
+
+## The Bug: Test-Set Threshold Optimization
+
+Our initial results (90.83% accuracy from GA connections) were inflated by a subtle data leakage bug. The single-cluster binary discriminator outputs a continuous score per example. To classify as Normal vs Attack, a **threshold** must be chosen: score $\geq t \rightarrow$ Attack. Our Rust evaluator was sweeping the 82K test scores to find the threshold that maximizes F1 --- optimizing on the very data we are evaluating against.
+
+This is the same mistake we found in the IDS literature (see @sec-literature-pitfalls). The actual generalization of those genomes with honest thresholds is ~85--88% F1.
+
+## Four-Threshold Validation Protocol
+
+To fully characterize threshold sensitivity, we now compute **four threshold modes** during every validation:
+
+| Mode | Threshold source | Overfit risk | Purpose |
+|------|-----------------|-------------|---------|
+| **Fixed 0.5** | Constant | Zero | Distribution-agnostic baseline |
+| **Train-calibrated** | 175K training scores | Low | Current default |
+| **Holdout-calibrated** | 43K unseen holdout | Very low | **Primary metric** |
+| **Oracle (val-cal)** | 82K test scores | High (leakage) | Upper bound |
+
+: Four threshold modes from most to least conservative. {#tbl-threshold-modes}
+
+The protocol works as follows:
+
+1. **Train-calibrated**: Train on 175K examples, compute scores on those same 175K, sweep for optimal threshold, apply to 82K test. This is the standard approach --- the threshold comes from training data, but the training distribution may not perfectly match the test distribution.
+
+2. **Fixed 0.5**: Use $t = 0.5$ regardless of data. No information from any split. This is what BiLSTM and other deep learning models implicitly use (sigmoid output + 0.5 cutoff).
+
+3. **Holdout-calibrated**: Train on 131K examples (optimizer training split), sweep the 43K holdout (unseen during optimization) for optimal threshold, then retrain on full 175K and apply that holdout threshold to 82K test. The threshold was derived from data the optimizer never saw.
+
+4. **Oracle**: Sweep the 82K test set directly. This is data leakage by definition, but it provides the **upper bound** on achievable performance. In production, this simulates having perfect recent labeled data for threshold tuning --- a realistic scenario for deployed IDS systems that periodically re-calibrate.
+
+The **holdout-calibrated** result is our primary reported metric. The gap between holdout and oracle quantifies how much live threshold adaptation could improve production performance.
+
+## Why Binarization Is a Methodological Advantage {#sec-binarization}
+
+A common source of data leakage in IDS papers is preprocessing with `StandardScaler`:
+
+```python
+# LEAKY: fit on combined data leaks test distribution
+scaler = StandardScaler()
+X_all = scaler.fit_transform(np.vstack([X_train, X_test]))
+
+# CORRECT: fit on train only
+scaler.fit(X_train)
+X_test = scaler.transform(X_test)
+```
+
+When `fit_transform` is called on the combined dataset, the scaler learns the mean and variance of the test set. For deep learning models, this affects batch normalization and gradient flow, inflating results by an estimated 1--3% F1.
+
+**Our WNN pipeline is inherently immune to this.** We use distributive thermometer encoding to binarize features directly from the raw dataset. The encoding thresholds are computed per-feature from the training set only. The test set is encoded using the same thresholds --- there is no scaling step, no learned statistics, and no opportunity for distribution leakage.
+
+This is worth highlighting in the paper: RAM WNNs operate on binary inputs, so the entire class of continuous-valued preprocessing leakage simply does not apply.
+
+# Literature Methodology Analysis {#sec-literature-pitfalls}
+
+Reviewing the IDS deep learning literature reveals several common methodological issues that inflate reported numbers:
+
+## 1. Random Splits on UNSW-NB15
+
+The UNSW-NB15 training set contains **42% duplicate records** [@zoghi2024visualization]. A random 80/20 split places many of these duplicates in both train and test --- the model literally memorizes test examples during training.
+
+| Split method | RF/XGBoost F1 | Deep Learning F1 |
+|---|---|---|
+| Standard partition (175K/82K) | ~87% | ~88--89% |
+| Random 80/20 or 90/10 | 97--99% | 98--99% |
+
+: The 10+ point accuracy gap is entirely explained by evaluation protocol, not model quality. {#tbl-split-gap-2}
+
+Papers reporting $>$95% accuracy on UNSW-NB15 binary classification are almost certainly using random splits.
+
+## 2. Implicit Thresholds in Deep Learning
+
+BiLSTM and other deep learning models for binary classification use a **sigmoid output layer** with an implicit threshold of 0.5. Most papers never mention this --- they don't realize it's a design choice. The sigmoid default of 0.5 is equivalent to our "Fixed 0.5" mode.
+
+This means deep learning baselines like the BiLSTM ~89% F1 [@mdpi2024enhanced] are directly comparable to our Fixed 0.5 result, not our train-calibrated or holdout-calibrated results. If our optimized threshold finds a better operating point than 0.5, we gain an advantage from threshold calibration alone.
+
+## 3. Feature Selection Before Splitting
+
+Some papers apply chi-squared, mutual information, or PCA feature selection on the full dataset before creating train/test splits. This leaks information about which features are discriminative in the test set. We found evidence of this in recent CNN-BiLSTM work on UNSW-NB15 which uses `SelectKBest` from scikit-learn without specifying whether selection occurs before or after the split.
+
+## 4. Comparison Fairness
+
+Given these methodology differences, direct numerical comparison between our results and literature baselines requires caution. We adopt a conservative stance:
+
+- We compare our **holdout-calibrated** F1 (most honest) against literature numbers that likely use implicit 0.5 thresholds
+- We explicitly report all four threshold modes so readers can choose the appropriate comparison
+- We note that our pipeline has **zero preprocessing leakage** by design
+
+# Updated Results: Single-Cluster with Honest Thresholds
+
+With the four-threshold protocol, our validation now reports:
+
+::: {.callout-note}
+## Results Pending
+Full four-threshold validation results will be updated here after the next complete flow run with the new validation code. The current running flow (Flow 154) will be the first to produce all four threshold modes during validation.
+:::
+
+The key comparison to watch:
+
+| Metric | Our WNN (Fixed 0.5) | Our WNN (Holdout) | Our WNN (Oracle) | BiLSTM (implicit 0.5) |
+|--------|--------------------|--------------------|------------------|----------------------|
+| F1-Macro | TBD | TBD | TBD | ~89% |
+| FPR | TBD | TBD | TBD | ~8% |
+
+: Four-threshold comparison with BiLSTM baseline. The Fixed 0.5 column is the fair comparison since BiLSTM uses implicit 0.5 threshold. {#tbl-threshold-comparison}
+
 # What's Next
 
+- **Complete four-threshold validation** --- First flow with honest thresholds running now
 - **Full optimization run** --- 250 generations/iterations, population 150, patience 5 on standard split
 - **Adaptation phases** --- Neurogenesis, synaptogenesis, and axonogenesis for stats-guided architecture refinement
 - **F1/FPR fitness** --- Beyond accuracy, optimize for false positive rate (critical for IDS deployment)
