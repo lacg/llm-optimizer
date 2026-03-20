@@ -1,0 +1,148 @@
+---
+title: "Week 18 -- System Recovery, Multi-Dataset Evaluation, and RAID 2026 Preparation"
+author: "Luiz Garcia"
+date: 2026-03-20
+abstract: |
+  A critical disk space crisis (2GB free on 1TB drive) forced an emergency
+  recovery: migrating the project off iCloud to local disk, fixing torch
+  imports, and rebuilding the Python venv. Once recovered, we fixed two
+  significant bugs in the leaderboard (cherry-picked metrics and missing
+  threshold_mode in UPDATE queries), discovered that our "89% F1" numbers
+  were outliers not means, and established honest analysis using
+  validation_summaries. We prepared three datasets on HuggingFace
+  (UNSW-NB15, CICIDS2017, CIC-IoT-2023) with proper temporal/random
+  splits, implemented leaderboard-seeded GA for F434/F435, and created
+  a concrete paper plan targeting **RAID 2026** (deadline April 16).
+  The honest numbers: **87.10% ±2.55% F1** (oracle) on UNSW-NB15
+  temporal split across 34 flows, with best single genome hitting 90%+.
+doi: ""
+license: "CC-BY-NC-SA-4.0"
+format: html
+---
+
+# Summary
+
+A week split between infrastructure crisis and major progress toward
+publication:
+
+1. **System recovery** --- iCloud eviction crisis brought the Mac Studio
+   to 2GB free. Moved project to `~/wnn/` (local disk), venv to
+   `~/wnn-venv/`, fixed torch (nightly→stable 2.10.0), fixed encoder
+   bug (Arrow StringDtype), freed 345GB total
+2. **Leaderboard bugs** --- best_genomes table had cherry-picked outliers
+   (89% F1 platt when real mean was 83%) and train_cal=test_cal due to
+   duplicate writes. Fixed both, backfilled from validation_summaries
+3. **Multi-dataset preparation** --- Three datasets on HuggingFace:
+   - UNSW-NB15 (`lacg030175/UNSW-NB15`) — temporal + random
+   - CICIDS2017 (`lacg030175/CICIDS2017`) — temporal + random
+   - CIC-IoT-2023 (`lacg030175/CIC-IoT-2023`) — random
+4. **Leaderboard seeding** --- Feature-selection filter for API, F434/F435
+   queued with `grid_source: "leaderboard"` to seed GA from best genomes
+5. **RAID 2026** target: April 16 deadline, Tier 2/CORE A venue,
+   perfect topical fit for IDS
+
+# Infrastructure Crisis and Resolution
+
+The project living on iCloud Drive (`~/Library/Mobile Documents/...`)
+caused a cascading failure when disk space hit 2GB:
+
+- macOS aggressively evicted files, breaking torch dylibs and
+  transformers package (3000+ .py files downloading one-at-a-time)
+- The "purgeable space" mechanism couldn't keep up with the eviction rate
+- Solution: `git clone` to `~/wnn/`, symlink venv from `~/wnn-venv/`
+- Root cause: ~500GB of iCloud purgeable cache on a 1TB drive
+
+**Lesson**: Development repos should never live on iCloud. Git is the
+sync mechanism.
+
+# Honest Analysis: validation_summaries vs best_genomes
+
+The leaderboard (`best_genomes` table) was showing inflated numbers:
+
+- Each genome appeared 2-5 times under different `metric` labels
+  (ce, fitness, accuracy, f1_macro, fpr)
+- The first `train_cal` submission used test-set default-threshold values,
+  then the real train_cal from threshold_metadata was ignored (INSERT OR
+  IGNORE kept the higher-F1 entry)
+- UPDATE WHERE clause was missing `threshold_mode`, causing cross-threshold
+  contamination
+
+**Fix**: Submit only from threshold_metadata (no duplicate train_cal),
+add threshold_mode to UPDATE WHERE. Backfilled 3,723 entries from
+validation_summaries.
+
+The honest numbers from validation_summaries:
+
+## UNSW-NB15 Results (34 flows, final phase, best_fitness genome)
+
+| Threshold | F1 mean ±std | FPR mean ±std | Acc mean ±std |
+|---|---|---|---|
+| val_cal (oracle) | 87.10% ±2.55% | 10.89% ±4.08% | 87.18% ±2.52% |
+| platt | 83.22% ±3.45% | 27.76% ±14.43% | 84.12% ±2.82% |
+| train_cal | 82.21% ±2.32% | 33.84% ±6.05% | 83.27% ±1.92% |
+| fixed_05 | 83.76% ±3.42% | 27.79% ±12.36% | 84.59% ±2.84% |
+
+Best single genome (oracle): 89.99% F1, 7.80% FPR, 90.04% Acc.
+
+# Multi-Dataset Preparation
+
+Three datasets published on HuggingFace with consistent format:
+
+### UNSW-NB15
+
+- Renamed config from `standard` to `temporal` (with `standard` as alias)
+- Temporal: 175K train / 82K test (official temporal split)
+- Random: 1.4M train / 158K test (deduped 90/10)
+- 42 features, top-20 by RF importance
+
+### CICIDS2017
+
+- **New**: `lacg030175/CICIDS2017`
+- Temporal: Mon-Thu train (2.1M) / Friday test (703K)
+  - Friday has unseen attack types (DDoS, Botnet, PortScan)
+- Random: 80/20 stratified (2.3M / 566K)
+- 78 features, top-20 by RF importance
+- Cleaned: NaN/inf removed, whitespace stripped
+
+### CIC-IoT-2023
+
+- **New**: `lacg030175/CIC-IoT-2023`
+- Random only (no temporal ordering in source data)
+- Subsampled: 200K benign + 50K per attack type = 1.3M total
+- 39 features, top-20 by RF importance
+- 33 attack types in 7 classes
+
+# Performance Goals
+
+| Dataset | Split | Target F1 | Stretch F1 | Target FPR | Model Size |
+|---|---|---:|---:|---:|---|
+| UNSW-NB15 | temporal | 88% | 90% | <10% | <1KB |
+| UNSW-NB15 | random | 95% | 98% | <1% | <1KB |
+| CICIDS2017 | temporal | 85% | 90% | <15% | <1KB |
+| CICIDS2017 | random | 95% | 98% | <2% | <1KB |
+| CIC-IoT-2023 | random | 93% | 96% | <5% | <1KB |
+
+# RAID 2026 Paper Plan
+
+- **Target**: RAID 2026, April 16 deadline, Lancaster UK, October 2026
+- **Format**: Springer LNCS, 20 pages excluding references
+- **Key contributions**:
+  1. First WNN IDS on standard temporal split
+  2. GA/TS connectivity optimization as feature selection
+  3. Competitive F1 at sub-1KB model size
+  4. 8-mode threshold calibration study
+  5. Three-dataset evaluation (UNSW-NB15, CICIDS2017, CIC-IoT-2023)
+
+# Active Flows
+
+- 34 UNSW-NB15 random-split flows running (~110s/gen)
+- 20+ remaining queued flows (PUB, baseline configs)
+- F505: CICIDS2017 temporal test flow queued
+- F434/F435: Leaderboard-seeded flows queued
+
+# Next Steps
+
+1. Complete CICIDS2017 test flow, create 34-flow batch
+2. Queue 68 more PUB + 62 10P + 62 4P UNSW-NB15 flows
+3. Begin paper draft (Background, Architecture, Methodology)
+4. FPGA resource estimates for Discussion section
