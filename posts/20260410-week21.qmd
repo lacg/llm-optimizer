@@ -1,0 +1,202 @@
+---
+title: "Weeks 19--21 -- RAID 2026 Submission Sprint: Baselines, FPGA Synthesis, and Paper Polish"
+author: "Luiz Garcia"
+date: 2026-04-10
+abstract: |
+  Three weeks of intensive work targeting the RAID 2026 submission deadline
+  (16 April). We ran RF/XGBoost baselines on all three datasets, revealing
+  that our WNN trades 5.5pp F1 for 5.8x lower FPR than Random Forest on
+  CIC-IoT-2023 --- the deployment-critical tradeoff story. FPGA synthesis of
+  the 400n x 8b peak genome (83.13% F1 on 46M CIC-IoT) produces just
+  304 LUTs on a $20 Zynq Z-7020. We discovered and fixed a 7/20 feature
+  name mismatch in the UNSW-NB15 HuggingFace dataset, fixed the random
+  split from 90/10 to 80/20 for cross-dataset consistency, added a
+  scale-dependent thermometer encoding finding (2-bit helps at 46M but
+  not at 1.3M), and polished the paper to 19 body pages with appendix.
+  HotCRP draft uploaded, ORCID created, 78/112 PUB50 8b flows grinding.
+doi: ""
+license: "CC-BY-NC-SA-4.0"
+format: html
+---
+
+# Summary
+
+The final push toward RAID 2026 submission (deadline: 16 April 2026 AoE).
+Three weeks of parallel progress across experiments, paper writing, FPGA
+synthesis, and infrastructure fixes:
+
+1. **RF/XGBoost baselines** on all three datasets --- closes the "missing
+   baseline" gap that reviewers would flag
+2. **CIC-IoT FPGA synthesis** of the 400n x 8b peak genome (304 LUTs, 67 MHz)
+3. **UNSW feature name bug** discovered and fixed (13/20 → 20/20 features)
+4. **UNSW HF split fix** (90/10 → 80/20 random for cross-dataset consistency)
+5. **PUB50-2b validation** --- 2-bit thermometer doesn't reproduce at 1.3M
+   scale (scale-dependent finding documented)
+6. **Paper at 19 body pages** with appendix, HotCRP draft uploaded
+7. **Connection pooling fix** for dashboard API (OSError 55 socket exhaustion)
+
+# ML Baselines: The FPR Story
+
+We ran Random Forest and XGBoost on identical splits (random 80/20) across
+all three datasets to provide the baseline comparison RAID reviewers expect.
+Key finding: **the WNN advantage is FPR, not F1**.
+
+## CIC-IoT-2023 (1.3M subsample, top-20 features)
+
+| Model | F1-macro | FPR | Acc |
+|---|---:|---:|---:|
+| RF (raw features) | 85.53% | 25.18% | 92.71% |
+| XGBoost (raw) | 84.13% | 28.34% | 92.07% |
+| **WNN train_cal (n=56)** | 80.07% | **4.32%** | 86.85% |
+| WNN best genome | 81.00% | **4.68%** | 87.68% |
+
+WNN trades 5.5pp F1 for **5.8x lower FPR** in a 100 KB model on a $20 FPGA.
+In deployed IDS, 25% FPR means 1-in-4 normal packets flagged as attacks ---
+operationally unusable. 4.3% is deployable.
+
+## CICIDS2017 (120 runs, 16-bit thermometer)
+
+| Model | F1-macro | FPR | Acc |
+|---|---:|---:|---:|
+| RF (raw) | 99.74% | 0.08% | 99.84% |
+| **WNN best genome** | **99.52%** | 0.13% | 99.70% |
+
+Only 0.22pp below RF --- near-parity in a model 5,000x smaller.
+
+## F1-macro vs F1-weighted
+
+A critical methodological insight: on the 97%-attack CIC-IoT dataset,
+F1-weighted (99.18%) looks much better than F1-macro (92.64%) for our RF.
+Neto et al. (2023) report RF F1 = 96.53% without specifying the averaging
+method. We report F1-macro throughout, which treats the 3% normal class
+equally --- the honest metric for IDS where false positives matter.
+
+We also ran RF/XGBoost on the full 46M dataset: our RF reaches 92.64%
+F1-macro vs Neto's 96.53%. The gap is likely due to StandardScaler (which
+we verified has no effect on tree-based models on 1.3M) and/or different
+random splits.
+
+# FPGA Synthesis: CIC-IoT Peak Genome
+
+Synthesized the 400n x 8b peak genome (F1 83.13%, FPR 2.06%, Acc 97.33%
+on 46M CIC-IoT) on the Xilinx Zynq Z-7020 via Vivado 2025.2 on EC2:
+
+| Metric | 200n x 4b (1.3M) | 400n x 8b (46M) |
+|---|---|---|
+| LUTs | 154 (0.29%) | **304 (0.57%)** |
+| FFs | 8 | 12 |
+| BRAM / DSP | 0 / 0 | 0 / 0 |
+| Fmax | 78 MHz | **67 MHz** |
+| Latency | 12.7 ns | **15.0 ns** |
+| Dense size | 3.1 KB | **100 KB** |
+
+Both fit comfortably on the $20 Zynq-7020 (surplus EBAZ4206 boards from
+decommissioned Bitcoin miners). The low LUT count (0.57% utilization)
+means the entire IDS classifier fits in a corner of the cheapest Xilinx
+part, with room for the packet parser and network stack.
+
+# UNSW-NB15 Feature Name Bug
+
+**Discovery**: 7 of 20 top-20 feature names in `dataset.py` didn't
+match the HuggingFace dataset column names. Prior WNN runs on UNSW with
+`feature_selection=top20` silently dropped 7 features, training on only
+13 of 20 intended features.
+
+| In code | In HF dataset |
+|---|---|
+| `dinpkt` | `Dintpkt` |
+| `dmean` | `dmeansz` |
+| `dpkts` | `Dpkts` |
+| `sinpkt` | `Sintpkt` |
+| `sjit` | `Sjit` |
+| `smean` | `smeansz` |
+| `spkts` | `Spkts` |
+
+**Impact**: All existing UNSW random-split results used only 13 features.
+The upcoming 112-run UNSW batch will use all 20, likely improving results.
+
+# UNSW HF Random Split Fix
+
+The UNSW-NB15 `random` config on HuggingFace was 90/10 (not 80/20 like
+CIC-IoT and CICIDS). Fixed by uploading new parquet files derived from
+`random_3way` (80% train = identical rows, 20% test = test+val merged).
+All three datasets now have consistent 80/20 random splits.
+
+# 2-Bit Thermometer: Scale-Dependent Finding
+
+The 46M downward thermometer sweep showed unexpected F1 lifts at 2-bit
+encoding (+1.26pp at 96n x 32b, +1.04pp at 400n x 8b). We validated
+this at the 1.3M scale with a 4-seed PUB50-2b batch:
+
+- 2-bit 1.3M: F1 77.86%, FPR 2.34% (4 seeds)
+- 8-bit 1.3M: F1 80.07%, FPR 4.32% (56 seeds)
+- Balanced fitness delta: -0.54pp (outside ±0.3pp noise floor)
+
+**Verdict**: NOT CONFIRMED at 1.3M. The 2-bit lift appears to be
+training-set-size-dependent --- narrower encodings benefit from the
+examples-per-address density the 46M dataset provides but the 1.3M
+subsample does not. Documented in the paper as a scale-dependent
+observation rather than a universal recommendation.
+
+# Paper Status
+
+**Format**: Springer LNCS, `\anonymoustrue` for double-blind
+**Pages**: 19 body + appendix + 2 refs = 22 total (limit: 20 body)
+**Tables**: 9 tables + 2 figures in body, 3 tables in appendix
+**HotCRP**: Draft uploaded to raid26.hotcrp.com, no format warnings
+**ORCID**: 0009-0001-2667-2193 created
+
+Key changes in the paper:
+- Added RF/XGBoost baselines table with avg + best-genome rows
+- Added CIC-IoT 400n x 8b FPGA row (tab:fpga)
+- Updated UNSW temporal from "112 runs" to correct "12 runs"
+- Refreshed CICIDS to 120-run homogeneous batch
+- Added scale-dependent 2-bit thermometer finding
+- Trimmed main tables to 3 key thresholds, full breakdown in appendix
+- Seven-mode threshold calibration (holdout mode removed)
+- Fixed fitness weights section to distinguish OLD vs NEW weights
+- Added acknowledgments paragraph (hidden in anonymous mode)
+- Cleaned bibliography (70 → 16 entries)
+
+# Infrastructure Fixes
+
+- **Connection pooling** (Python worker): `HTTPAdapter` with
+  `pool_maxsize=4`, `pool_block=True`, urllib3 retry with exponential
+  backoff. Prevents OSError 55 from socket accumulation.
+- **Vite proxy agent** (dashboard frontend): shared `HttpsAgent` with
+  `keepAlive=true`, `maxSockets=10`. Prevents CLOSE_WAIT socket leaks
+  from the proxy → backend connection (96 zombie sockets cleared).
+- **Silent exception fix**: replaced `except Exception: pass` in
+  `_select_validation_genomes()` with logged warning + traceback.
+
+# Current Experiment Status
+
+- **PUB50 8b CIC-IoT**: 78/112 completed, ETA Sunday 12/04
+- **PUB50-2b CIC-IoT**: 4/10 completed, verdict: NOT CONFIRMED (paused)
+- **UNSW mini-sweep**: 12 flows pending (after PUB50 finishes)
+- **UNSW 112-run batch**: script ready, fires after mini-sweep picks width
+- **UNSW 112 temporal**: planned with fitness fix (new weights + threshold)
+- **46M full-GA**: 2 flows pending (lowest priority)
+
+# Roadmap to Submission
+
+```
+Sat 12/04  PUB50 8b finishes → update tab:ciot-phase to 112 runs
+           Queue UNSW random mini-sweep (12 flows, ~4h)
+           → Pick thermometer width
+           Queue UNSW random 110-run batch (~37h)
+Mon 14/04  UNSW random finishes → add to paper
+           Queue UNSW temporal mini-sweep → 110-run batch (~9h)
+           Queue 46M full-GA (2 flows, ~6-15h)
+Tue 14/04  All experiments done
+Wed 15/04  Final paper polish + PDF upload
+Thu 16/04  DEADLINE (AoE = Fri 17/04 07:59 ET)
+```
+
+# Next Steps
+
+1. Finish PUB50 8b CIC-IoT (78/112 → 112/112)
+2. UNSW random mini-sweep → 112-run batch with corrected features
+3. UNSW temporal re-run with fitness fix
+4. Final paper review pass
+5. Mark "ready for review" on HotCRP
