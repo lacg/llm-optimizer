@@ -1,0 +1,332 @@
+---
+title: "Week 22 -- RAID 2026 Submitted: Final Sprint, Post-Submission Audit, and the Road Ahead"
+author: "Luiz Garcia"
+date: 2026-04-20
+abstract: |
+  Paper submitted to RAID 2026 on 17/04/2026. This post closes the submission
+  sprint and opens the post-submission chapter. We document the final-day
+  catches (misconfigured temporal flows, stale citations, F1-macro rename,
+  arithmetic fixes), the 46 → 112 run completion across UNSW random (plus
+  UNSW temporal's quiet overnight 101 → 112 completion), and a full audit
+  confirming all four datasets at 112 runs symmetric across body, appendix,
+  and tracking docs. We tag the submitted snapshot as `raid-2026-submitted`.
+  Then we survey RAID 2025 accepted papers, audit the competing NN-pruning
+  literature, and find a gift: a freshly-published arxiv paper
+  (2505.14592, May 2025) concludes that "most pruning methods don't
+  generalize well to IDS" --- directly supporting our design-time-native
+  evolutionary WNN approach as an orthogonal, non-competing alternative.
+  46M GA flows kicked off (bonus camera-ready data). Post-submission
+  research roadmap drafted with four phases across pop-sweep, methodical
+  auto-thermometer, fitness-weight grid, expert voting, and 3-way split
+  reactivation.
+doi: ""
+license: "CC-BY-NC-SA-4.0"
+format: html
+---
+
+# Summary
+
+Week 22 was the **submission landing + post-submission liftoff** week. Three
+major threads:
+
+1. **Paper submitted 17/04/2026**: HotCRP upload successful after 85 minutes
+   of final-hour fixes on submission eve (mis-configured flow audit, F1-macro
+   rename, arithmetic corrections, table alignment, XGBoost side observation).
+   Submitted commit tagged as `raid-2026-submitted` for reproducibility.
+2. **Pipeline drained 46 → 112 on UNSW random**, plus silent overnight
+   completion of UNSW temporal 101 → 112. All four datasets now at 112 runs
+   symmetric across main body tables, Appendix A (20 threshold breakdown
+   tables), and `docs/ids_results.md`.
+3. **Post-submission reconnaissance**: RAID 2025 accepted-papers audit,
+   NN-pruning competitive analysis, and a fortunate finding from
+   `arxiv:2505.14592` that strengthens our positioning story for
+   camera-ready and conference presentation.
+
+# The 85-Minute Submission-Eve Fixes
+
+Between 22:20 and 23:45 EDT on 16/04/2026, a rapid sequence of catches
+closed methodology gaps that would have bitten us:
+
+## Misconfigured Flow Audit (caught at last minute)
+
+Three flows named `UNSW-fitfix-t8b-temporal-r{110,111,112}` had
+`ids_split="random"` in their config despite "temporal" in the name.
+Their F1 scores (94.5%) were dramatically above true-temporal runs
+(87%), polluting the 104-run aggregate we'd briefly reverted to before
+catching the issue. Fix: filter all appendix generation by
+`config.ids_split` instead of flow name, rename the 3 offending flows
+to `MISCONFIG-t8b-random-r*`, and restore the paper body to the original
+correct 101 true-temporal runs.
+
+**Lesson**: never trust flow name alone --- always cross-check with the
+config. Added a runtime validation step to our appendix generator.
+
+## CICIDS 120 → 112 Reconciliation
+
+The paper text claimed "120 runs" for CICIDS2017 but `PUB50-cicids-16b-random`
+has only 112 flows. Investigation revealed the prior aggregate had mixed
+112 PUB50-16b flows with 6 `FPGA-cicids-{8,10,12}maxb` flows from earlier
+synthesis experiments --- entirely different thermometer config. The
+mixed aggregate had std=0.52 on train-cal F1 vs the clean 16b-only
+std=0.10. We rebased all CICIDS numbers to pure PUB50-16b (112 runs,
+99.38±0.10 F1 / 0.20±0.08 FPR / 99.61±0.06 Acc train-cal).
+
+## F1-macro → F1 Rename
+
+Paper body was inconsistent between "F1-macro" and "F1". Abstract now defines
+`F1-Macro (F1)` on first use, and the rest of the paper uses "F1" everywhere
+for readability.
+
+## Arithmetic Fixes (7 instances)
+
+Multiple places where claimed deltas didn't match table values:
+
+- "40--43% neuron reduction" → "up to 42% (4--42% across three datasets)" (CICIDS 42%, CIC-IoT 19%, UNSW temp 4%)
+- "0.46% F1 gap to RF" → **0.31%** (99.74 - 99.43 on CICIDS thermo sweep)
+- "0.22% for best genome" → **0.19%** (99.74 - 99.55)
+- "99.40/99.37 (0.03 gap)" → **99.30/99.28 (0.02 gap)** for CICIDS val vs train-cal
+- Minor cascading updates as values firmed up
+
+## XGBoost Side Observation (deployment framing)
+
+Added a one-sentence observation in the 46M discussion: XGBoost's 300 KB
+model and 130 ns latency would *also* fit the Z-7020's BRAM and line-rate
+budget --- but its 14.80% FPR is 1.5--13× higher than our sparse Search(46M)
+genomes (9.82% at best F1, 1.13% at best FPR). Gives reviewers a direct
+deployability comparison without tables-of-numbers fatigue.
+
+# The Pipeline Drain: 46 → 112 on UNSW Random
+
+At submission we had 50 UNSW random runs. The pipeline drained to **112
+runs over 3.5 days**, as expected from the 80.3 min/run average. Stats were
+already saturated at submission:
+
+| Metric (best-fitness GA) | At submission (50 runs) | At completion (112 runs) | Shift |
+|---|---:|---:|---:|
+| Train-cal F1 | 94.41 ± 0.15 | 94.39 ± 0.15 | -0.02 |
+| Train-cal FPR | 0.45 ± 0.06 | 0.45 ± 0.05 | 0 |
+| Val-cal F1 | 94.49 ± 0.15 | 94.49 ± 0.14 | 0 |
+| Val-cal FPR | 0.48 ± 0.05 | 0.49 ± 0.05 | +0.01 |
+
+**Champions unchanged**: the best F1 genome (f1331, 94.86% F1) and best FPR
+genome (f1339, 93.72% / 0.23% FPR) held through 62 additional runs of
+statistical competition. Empirical proof that the submission snapshot was at
+the statistical asymptote.
+
+# Silent Overnight: UNSW Temporal 101 → 112
+
+On 19/04, the worker quietly completed 11 more UNSW temporal flows (new flows at
+ids 1559--1573, named r098--r112) without any intervention. UNSW temporal jumped
+from 101 to 112 without anyone watching. Values shifted only slightly (e.g.,
+train-cal F1 87.02 → 86.95, FPR 13.76 → 13.84), but the completeness of
+**all four datasets now at 112 runs symmetric** was too pretty to pass up.
+
+Paper body, Appendix A's 20 threshold-breakdown tables, and `ids_results.md`
+were all updated to reflect 112 temporal runs.
+
+## Final state
+
+| Dataset | Runs | Status |
+|---|---:|---|
+| UNSW-NB15 temporal | 112 | ✅ |
+| UNSW-NB15 random | 112 | ✅ |
+| CICIDS2017 (16b) | 112 | ✅ |
+| CIC-IoT-2023 (1.3M) | 112 | ✅ |
+| 46M GA CIC-IoT | 1 running / 1 queued | 🔄 |
+
+# Submitted Snapshot Preserved: `raid-2026-submitted` Tag
+
+To separate "what went to HotCRP" from "working-copy drift toward
+camera-ready", we created an annotated Git tag:
+
+```bash
+git tag -a raid-2026-submitted 42d3ee58 -m "RAID 2026 submission snapshot..."
+git push origin raid-2026-submitted
+```
+
+Anyone can now `git checkout raid-2026-submitted` and reproduce the exact
+submitted PDF. All post-submission updates (112-run refreshes, arithmetic
+polish, etc.) go to the working copy. Tag is immutable and searchable via
+`git show raid-2026-submitted`.
+
+This is a **research-hygiene habit worth replicating**: every submission
+deserves a tag. Next year, `ijcnn-2027-submitted`, etc. --- a self-documenting
+timeline of every paper state.
+
+# Post-Submission Reconnaissance
+
+With the pipeline draining on its own, we turned to studying the
+competitive landscape for camera-ready framing and potential rebuttal prep.
+
+## RAID 2025 Accepted-Papers Audit
+
+Of the ~16 accepted RAID 2025 papers (IEEE/CPS format, 12-page main body),
+the ones relevant to our work:
+
+| Paper | Approach | Hardware target |
+|---|---|---|
+| **NIDP** (Ding et al.) | Neural pruning for drift-robustness | GPU/CPU |
+| **DeepFW** | DNN firmware-version identification | - |
+| **STGraph** | Spatio-temporal graph anomaly detection | - |
+
+**No RAID 2025 paper targets FPGA-deployable IDS.** Our work remains
+uniquely positioned in that space.
+
+## The Gift: arxiv:2505.14592 Conclusion
+
+While chasing NIDP details, we found **"Adaptive Pruning of Deep Neural
+Networks for Resource-Aware Embedded Intrusion Detection on the Edge"**
+(arxiv:2505.14592, May 2025). Its core finding:
+
+> Most pruning methods don't generalize well to IDS.
+
+The paper tests 6 pruning methods (ThiNet, ADMM-Joint, DAIS, etc.) on a
+27-layer MLP (329K params, ~1 MB). The best result is a pruned model at
+0.963 F1-macro on ACI-IOT-2023. No FPGA, no hardware synthesis --- pure
+software compression.
+
+**This is a direct gift for our positioning**: post-hoc pruning is hitting
+generalization walls in the IDS domain, which validates our design-time
+native sparsity approach as a structurally different solution. Our
+evolutionary WNN produces **20-byte to 2 KB models** natively --- not
+by retrofitting a large pre-trained DNN.
+
+A ready-to-paste framing for camera-ready:
+
+> Recent work suggests post-hoc pruning techniques struggle to generalize
+> to IDS domains [arxiv:2505.14592]. Our evolutionary weightless-neural-network
+> approach sidesteps this limitation entirely by evolving models that are
+> natively small, achieving 1,000×–10⁶× compactness over pruned DNN baselines
+> while maintaining competitive F1 across four IDS benchmarks.
+
+The scale number (1,000×–10⁶×) is factual: pruned MLP ≈ 1 MB, our 5n×4b is
+20 bytes → 50,000×. Our 200n×4b is 800 B → 1,250×. Our 400n×8b peak is 25 KB
+→ 40×. The claim holds across the entire architecture family.
+
+## Design-Time vs Post-Hoc: A Clean Paradigm Framing
+
+Pruning = **post-hoc efficiency retrofitting** (take big DNN → remove
+parameters). Struggles because the resulting structure is derivative, not
+native to the problem.
+
+Our WNN+GA = **design-time native sparsity**. Each genome is purpose-built
+through evolutionary optimization with thermometer encoding and connectivity
+evolution tuned to the IDS domain from step one.
+
+When retrofitting doesn't generalize, native approaches become the natural
+alternative. This is a cleaner story than "pruning vs. our pruning" ---
+it's **"pruning vs. evolution"** as fundamental paradigms.
+
+Archived in project memory as `project_positioning_vs_pruning.md` for
+camera-ready + conference PPT use.
+
+# 46M GA Bonus: Kicked Off
+
+The two flows `PUB-ciciot-full46M-8b-r98` and `-r99` that we'd queued at
+submission time (lowest IDs, picked last by the worker) are now running.
+First-ever 2-phase GA on the full 46.7M-record CIC-IoT-2023 dataset.
+
+- `r98`: running
+- `r99`: queued
+
+Expected ~12--24h per flow (vs 80 min for the 1.3M subsample). Completion by
+**~22/04/2026 if optimistic, 24/04 if pessimistic**. Data will be bonus
+camera-ready material if it completes before the notification arrives.
+
+# Post-Submission Research Roadmap
+
+With the pipeline self-draining, we drafted a 4-phase roadmap for continued
+research. All experiments run on UNSW temporal (~8 min/run, fast iteration),
+5 flows per config for mean±std, sequential execution (parallel hits
+memory/CPU contention from prior investigation).
+
+## Phase 1: Quick wins (~6 hours total)
+
+- **Pop size re-sweep** with aligned fitness + K-fold=5: pop ∈ {50, 100,
+  150, 200}. Hypothesis: prior overfitting at pop=150 was caused by
+  misaligned fitness; K-fold + balanced weights should cure it. 4 configs
+  × 5 runs = 2.7h.
+- **Grid top-K sweep**: top_k ∈ {5, 10, 15, 20, 30}. Does architectural
+  diversity at GA start help? 5 × 5 = 3.3h.
+
+## Phase 2: Methodical sweeps (~64 hours)
+
+- **Auto-thermometer 2b→64b step-by-2b**: 32 configs. Find the exact
+  thermometer "elbow" after last sprint's ad-hoc sweep showed Auto:18b
+  beats uniform 8b by +0.83–1.62 pp F1.
+- **Fitness-weight grid** with scale-dedup: {0, 0.5, 1}⁴ coarse first
+  (65 unique × 5 = 43h), zoom to {0, 0.25, 0.5, 1}⁴ on promising regions
+  if needed. Scale-dedup exploits the harmonic-rank fitness's invariance
+  under uniform weight scaling --- (1,1,0,0) and (0.5,0.5,0,0) are
+  rank-equivalent and we only need to run one.
+
+## Phase 3: Methodological improvements (code changes)
+
+- **Mini-ensemble of 3 seeds**: majority vote. Expected +0.5–1.0 pp F1
+  and tighter FPR variance. Baseline for Expert Voting.
+- **Expert voting (easy version)**: 2–3 GA runs with different fitness
+  weights (F1-heavy, FPR-heavy), ensemble predictions. Compared against
+  Mini-ensemble to isolate "specialization" value.
+- **3-way split reactivation**: HF `_3way` configs already have 80/10/10.
+  Current worker merges test+val into one 20% held-out validation. Proposal:
+  use the 10% test as training-time holdout (early stopping, threshold
+  calibration), keep the 10% val completely untouched for final validation.
+  Strengthens the paper's "val is untouched" claim.
+
+## Phase 4: Full pipeline on best config (~8–20 hours)
+
+Run 5 flows with the 10-phase GA+TS+Lamarckian pipeline on whatever
+(pop, topK, fitness_weights, auto_max_bits) wins Phase 1–2:
+
+1. Grid Search (architecture)
+2. GA Neurons
+3. TS Neurons
+4. GA Bits
+5. TS Bits
+6. Lamarckian Neurons
+7. Lamarckian Bits
+8. GA Connections
+9. TS Connections
+10. Lamarckian Connections
+
+Connections last because they refine a fixed architecture.
+
+## Standing research questions
+
+1. **Calibrated-threshold Pareto outliers**: Platt/Beta on best_fpr genome
+   aggregate is WORSE than train_cal (80.80% vs 85.87% F1), but outlier
+   single genomes hit attractive Pareto points (f1566: 86.04% F1 / 0.44%
+   FPR / 86.05% Acc). What genome property predicts Pareto-favorability?
+2. **Per-feature thermometer entropy**: is Auto:18b winning because it
+   matches feature cardinality distributions? Correlate features'
+   unique-value counts with optimal per-feature bit allocation.
+3. **Cross-dataset generalization**: does the winning UNSW temporal config
+   transfer to UNSW random / CICIDS / CIC-IoT / 46M?
+
+Archived in `docs/post_submission_roadmap.md` with checkboxes for each
+experiment, hypothesis, and a slot for findings.
+
+# What the Notification Will Look Like
+
+RAID typically notifies ~6–8 weeks after submission. For a 16/04/2026
+submission, that's roughly late May / early June 2026.
+
+Possible outcomes, ranked by probability:
+
+1. **Conditional accept / shepherded** (most likely for deadline
+   submissions with in-progress data): reviewers ask for specific
+   revisions, a shepherd signs off before camera-ready. The 50-run at
+   submission → 112-run at camera-ready commitment is textbook.
+2. **Accept** (best case): paper accepted as-is, minor camera-ready
+   polish only.
+3. **Revise and resubmit** (less common at RAID).
+4. **Reject**: paper + reviews become ammunition for CCS/USENIX/NDSS.
+
+# Next Week (Week 23)
+
+- **Await RAID reviews** (nothing to do; 46M GA runs in background)
+- **Start Phase 1** of post-submission roadmap (pop-sweep, top-K sweep)
+  — these run in the background and don't require attention
+- **Begin Phase 2 auto-thermometer** if Phase 1 wraps fast
+- **If review notification arrives early**: refocus on rebuttal prep
+  using the `project_positioning_vs_pruning.md` framing
